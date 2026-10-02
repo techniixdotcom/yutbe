@@ -8,7 +8,7 @@ YuTbe is an advanced webview wrapper for YouTube. It is a continuation of the di
 * [x] **Sponsor-block**
 * [x] **Bottom-bar mini-player**
 * [x] **Local queue support with auto-play next**
-* [x] **Background & Picture-in-Picture support**
+* [x] **Background play support**
 * [x] **Built-in video and playlist downloader**
 * [x] **Live stream chat support, etc**
 * [x] **Watched Videos are greyed out**
