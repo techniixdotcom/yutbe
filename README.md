@@ -1,6 +1,8 @@
 YuTbe
 ============
 
+by: cuteLiLi / techniix / QuacK
+
 YuTbe is an advanced webview wrapper for YouTube.
 
 ## Features
