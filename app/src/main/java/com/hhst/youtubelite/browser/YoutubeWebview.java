@@ -83,6 +83,7 @@ public class YoutubeWebview extends WebView {
 	private TabManager tabManager;
 	private QueueRepository queueRepository;
 	private PlaybackHistory playbackHistory;
+	private com.hhst.youtubelite.sync.WatchSyncManager watchSyncManager;
 	@Nullable
 	private LoadingProgressBar progressBar;
 	private volatile boolean initialized;
@@ -196,6 +197,10 @@ public class YoutubeWebview extends WebView {
 		this.playbackHistory = playbackHistory;
 	}
 
+	public void setWatchSyncManager(@NonNull com.hhst.youtubelite.sync.WatchSyncManager watchSyncManager) {
+		this.watchSyncManager = watchSyncManager;
+	}
+
 	@Override
 	protected void onFinishInflate() {
 		super.onFinishInflate();
@@ -257,7 +262,7 @@ public class YoutubeWebview extends WebView {
 		settings.setMediaPlaybackRequiresUserGesture(false);
 		settings.setUserAgentString("Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36");
 
-		JavascriptInterface jsInterface = new JavascriptInterface(this, youtubeExtractor, player, extensionManager, tabManager, queueRepository, playbackHistory);
+		JavascriptInterface jsInterface = new JavascriptInterface(this, youtubeExtractor, player, extensionManager, tabManager, queueRepository, playbackHistory, watchSyncManager);
 		addJavascriptInterface(jsInterface, "lite");
 		setTag(jsInterface);
 

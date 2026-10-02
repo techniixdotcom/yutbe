@@ -1,6 +1,7 @@
 package com.hhst.youtubelite.extension;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
@@ -11,6 +12,8 @@ import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.OnBackPressedCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -24,6 +27,8 @@ import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.hhst.youtubelite.R;
+import com.hhst.youtubelite.ui.history.WatchHistoryActivity;
+import com.hhst.youtubelite.util.ToastUtils;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -40,8 +45,17 @@ import dagger.hilt.android.AndroidEntryPoint;
 public class ExtensionActivity extends AppCompatActivity {
 	private static final int TYPE_NAV = 0;
 	private static final int TYPE_TOGGLE = 1;
+	private static final int TYPE_ACTION = 2;
 	@Inject
 	ExtensionManager manager;
+	@Inject
+	com.hhst.youtubelite.sync.WatchSyncManager syncManager;
+	private final ActivityResultLauncher<Uri> folderPicker =
+					registerForActivityResult(new ActivityResultContracts.OpenDocumentTree(), uri -> {
+						if (uri == null) return;
+						syncManager.setSyncFolder(uri);
+						ToastUtils.show(this, R.string.sync_folder_set);
+					});
 	private final Deque<Extension> stack = new ArrayDeque<>();
 	private final Adapter adapter = new Adapter();
 	private Extension page;
@@ -105,6 +119,40 @@ public class ExtensionActivity extends AppCompatActivity {
 		showPage(item, true);
 	}
 
+	private void handleAction(@NonNull Extension item) {
+		if (item.key() == null) return;
+		switch (item.key()) {
+			case Constant.ACTION_SELECT_SYNC_FOLDER -> folderPicker.launch(null);
+			case Constant.ACTION_VIEW_WATCH_HISTORY ->
+							startActivity(new Intent(this, WatchHistoryActivity.class));
+			case Constant.ACTION_BLOCKED_CHANNELS -> showBlockedChannels();
+			default -> {
+			}
+		}
+	}
+
+	private void showBlockedChannels() {
+		com.hhst.youtubelite.sync.BlockedChannels blocked = new com.hhst.youtubelite.sync.BlockedChannels();
+		java.util.List<String> names = blocked.list();
+		if (names.isEmpty()) {
+			new MaterialAlertDialogBuilder(this)
+							.setTitle(R.string.blocked_channels)
+							.setMessage(R.string.blocked_channels_empty)
+							.setPositiveButton(R.string.confirm, null)
+							.show();
+			return;
+		}
+		String[] items = names.toArray(new String[0]);
+		new MaterialAlertDialogBuilder(this)
+						.setTitle(R.string.blocked_channels)
+						.setItems(items, (d, which) -> {
+							blocked.unblock(items[which]);
+							ToastUtils.show(this, getString(R.string.channel_unblocked, items[which]));
+						})
+						.setNegativeButton(R.string.cancel, null)
+						.show();
+	}
+
 	private void showPage(@NonNull Extension next, boolean push) {
 		if (push && page != null) {
 			stack.push(page);
@@ -135,7 +183,9 @@ public class ExtensionActivity extends AppCompatActivity {
 
 		@Override
 		public int getItemViewType(int position) {
-			return items.get(position).hasChildren() ? TYPE_NAV : TYPE_TOGGLE;
+			Extension item = items.get(position);
+			if (item.key() != null && item.key().startsWith(Constant.ACTION_PREFIX)) return TYPE_ACTION;
+			return item.hasChildren() ? TYPE_NAV : TYPE_TOGGLE;
 		}
 
 		@Override
@@ -150,6 +200,9 @@ public class ExtensionActivity extends AppCompatActivity {
 			if (viewType == TYPE_NAV) {
 				return new NavHolder(inflater.inflate(R.layout.item_extension_nav, parent, false));
 			}
+			if (viewType == TYPE_ACTION) {
+				return new ActionHolder(inflater.inflate(R.layout.item_extension_nav, parent, false));
+			}
 			return new ToggleHolder(inflater.inflate(R.layout.item_extension_toggle, parent, false));
 		}
 
@@ -158,6 +211,10 @@ public class ExtensionActivity extends AppCompatActivity {
 			Extension item = items.get(position);
 			if (holder instanceof NavHolder nav) {
 				nav.bind(item);
+				return;
+			}
+			if (holder instanceof ActionHolder action) {
+				action.bind(item);
 				return;
 			}
 			((ToggleHolder) holder).bind(item);
@@ -197,8 +254,35 @@ public class ExtensionActivity extends AppCompatActivity {
 		}
 	}
 
-	private final class ToggleHolder extends RecyclerView.ViewHolder {
+	private final class ActionHolder extends RecyclerView.ViewHolder {
 		private final TextView title;
+		private final TextView summary;
+		private final ImageView chevron;
+		private final ImageView icon;
+
+		private ActionHolder(@NonNull View itemView) {
+			super(itemView);
+			title = itemView.findViewById(R.id.title);
+			summary = itemView.findViewById(R.id.summary);
+			chevron = itemView.findViewById(R.id.chevron);
+			icon = itemView.findViewById(R.id.icon);
+		}
+
+		private void bind(@NonNull Extension item) {
+			title.setText(item.title());
+			if (item.summary() == 0) {
+				summary.setVisibility(View.GONE);
+			} else {
+				summary.setVisibility(View.VISIBLE);
+				summary.setText(item.summary());
+			}
+			icon.setVisibility(View.GONE);
+			chevron.setVisibility(View.GONE);
+			itemView.setOnClickListener(v -> handleAction(item));
+		}
+	}
+
+	private final class ToggleHolder extends RecyclerView.ViewHolder {		private final TextView title;
 		private final TextView summary;
 		private final SwitchMaterial toggle;
 

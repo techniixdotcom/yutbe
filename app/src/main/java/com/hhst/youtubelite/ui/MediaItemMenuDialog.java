@@ -21,6 +21,8 @@ import com.hhst.youtubelite.gallery.GalleryActivity;
 import com.hhst.youtubelite.player.LitePlayer;
 import com.hhst.youtubelite.player.queue.QueueItem;
 import com.hhst.youtubelite.player.queue.QueueRepository;
+import com.hhst.youtubelite.sync.BlockedChannels;
+import com.hhst.youtubelite.sync.WatchSyncManager;
 import com.hhst.youtubelite.util.ToastUtils;
 import com.squareup.picasso.Picasso;
 
@@ -41,17 +43,31 @@ public final class MediaItemMenuDialog {
 	private final QueueRepository queue;
 	@NonNull
 	private final LitePlayer player;
+	@Nullable
+	private final WatchSyncManager watchSyncManager;
+	@NonNull
+	private final BlockedChannels blockedChannels = new BlockedChannels();
 
 	public MediaItemMenuDialog(@NonNull Context context,
 	                           @NonNull MediaItemMenuPayload item,
 	                           @NonNull YoutubeExtractor extractor,
 	                           @NonNull QueueRepository queue,
 	                           @NonNull LitePlayer player) {
+		this(context, item, extractor, queue, player, null);
+	}
+
+	public MediaItemMenuDialog(@NonNull Context context,
+	                           @NonNull MediaItemMenuPayload item,
+	                           @NonNull YoutubeExtractor extractor,
+	                           @NonNull QueueRepository queue,
+	                           @NonNull LitePlayer player,
+	                           @Nullable WatchSyncManager watchSyncManager) {
 		this.context = context;
 		this.item = item;
 		this.extractor = extractor;
 		this.queue = queue;
 		this.player = player;
+		this.watchSyncManager = watchSyncManager;
 	}
 
 	public void show() {
@@ -95,8 +111,55 @@ public final class MediaItemMenuDialog {
 			dialog.dismiss();
 			new DownloadDialog(item.videoUrl(), context, extractor).show();
 		});
+		View markWatched = view.findViewById(R.id.action_mark_watched);
+		boolean watched = isWatched();
+		if (markWatched instanceof TextView markWatchedText) {
+			markWatchedText.setText(watched ? R.string.mark_as_unwatched : R.string.mark_as_watched);
+		}
+		markWatched.setOnClickListener(v -> {
+			if (watched) {
+				unmarkWatched();
+			} else {
+				markWatched();
+			}
+			dialog.dismiss();
+		});
+		View blockChannel = view.findViewById(R.id.action_block_channel);
+		boolean hasAuthor = item.author() != null && !item.author().isBlank();
+		blockChannel.setVisibility(hasAuthor ? View.VISIBLE : View.GONE);
+		blockChannel.setOnClickListener(v -> {
+			blockedChannels.block(item.author());
+			ToastUtils.show(context, context.getString(R.string.channel_blocked, item.author()));
+			dialog.dismiss();
+		});
 
 		dialog.show();
+	}
+
+	private void markWatched() {
+		if (watchSyncManager == null) return;
+		// A full-position entry marks the video watched (100%) in the ledger:
+		// it is grayed out in feeds and skipped by autoplay-next.
+		watchSyncManager.recordWatch(item.videoId(), item.title(), item.author(),
+						item.thumbnailUrl(), 1L, 1L);
+		ToastUtils.show(context, R.string.marked_as_watched);
+	}
+
+	private boolean isWatched() {
+		try {
+			if (watchSyncManager == null) return false;
+			for (String id : watchSyncManager.getWatchedVideoIds()) {
+				if (id.equals(item.videoId())) return true;
+			}
+		} catch (Exception ignored) {
+		}
+		return false;
+	}
+
+	private void unmarkWatched() {
+		if (watchSyncManager == null) return;
+		watchSyncManager.markUnwatched(item.videoId(), item.title(), item.author(), item.thumbnailUrl());
+		ToastUtils.show(context, R.string.marked_as_unwatched);
 	}
 
 	private void addToQueue(boolean playNext) {

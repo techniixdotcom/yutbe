@@ -25,8 +25,8 @@ public class ControllerTest {
 	}
 
 	@Test
-	public void portraitRotationCanExitAutoFullscreen() {
-		assertTrue(Controller.shouldExitFs(
+	public void portraitRotationNeverExitsFullscreen() {
+		assertFalse(Controller.shouldExitFs(
 						true,
 						true,
 						Configuration.ORIENTATION_UNDEFINED,

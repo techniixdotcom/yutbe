@@ -258,9 +258,9 @@ public class Controller {
 	                            final boolean autoFullscreen,
 	                            final int previousOrientation,
 	                            final int orientation) {
-		return fullscreen
-						&& orientation == Configuration.ORIENTATION_PORTRAIT
-						&& (autoFullscreen || previousOrientation == Configuration.ORIENTATION_LANDSCAPE);
+		// Fullscreen is only ever left via the fullscreen button; rotating the
+		// phone back to portrait must keep the video fullscreen.
+		return false;
 	}
 
 	static boolean shouldRequestPortraitOnManualExit(final boolean fullscreen,
@@ -977,22 +977,9 @@ public class Controller {
 	}
 
 	private boolean exitManualFullscreenOnPhysicalPortrait() {
-		if (!manualFullscreenSensorExit || autoFs || !state.isFullscreen()) {
-			return false;
-		}
-		if (!manualFullscreenSawLandscape) {
-			return false;
-		}
-		long now = SystemClock.elapsedRealtime();
-		if (manualFullscreenPortraitSinceMs == 0L) {
-			manualFullscreenPortraitSinceMs = now;
-			return false;
-		}
-		if (now - manualFullscreenPortraitSinceMs < PHYSICAL_ORIENTATION_STABLE_MS) {
-			return false;
-		}
-		exitNow();
-		return true;
+		// Physically rotating to portrait must not leave fullscreen; only the
+		// fullscreen button exits.
+		return false;
 	}
 
 	public void syncRotation(boolean autoRotate, int orientation) {

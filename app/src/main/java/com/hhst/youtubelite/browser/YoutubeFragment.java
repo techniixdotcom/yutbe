@@ -51,6 +51,8 @@ public final class YoutubeFragment extends Fragment {
 	@Inject
 	PlaybackHistory playbackHistory;
 	@Inject
+	com.hhst.youtubelite.sync.WatchSyncManager watchSyncManager;
+	@Inject
 	OkHttpClient okHttpClient;
 	@Inject
 	WebViewCachePolicy webViewCachePolicy;
@@ -118,6 +120,7 @@ public final class YoutubeFragment extends Fragment {
 		webView.setTabManager(tabManager);
 		webView.setQueueRepository(queueRepository);
 		webView.setPlaybackHistory(playbackHistory);
+		webView.setWatchSyncManager(watchSyncManager);
 		webView.setOkHttpClient(okHttpClient, webViewCachePolicy);
 		tabManager.injectScripts(webView);
 		webView.setUpdateVisitedHistory(url -> {

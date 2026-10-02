@@ -1,6 +1,7 @@
 // Hides account settings entries we don't want to surface.
 (function () {
-  var HIDDEN = ['billing and payments', 'purchases and memberships', 'connected apps'];
+  var HIDDEN = ['billing and payments', 'purchases and memberships', 'connected apps',
+    'history and privacy', 'your data in youtube', 'notifications'];
 
   function sweep() {
     try {

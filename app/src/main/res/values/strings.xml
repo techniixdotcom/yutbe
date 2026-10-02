@@ -205,5 +205,30 @@
     <string name="playlist_download_batch_segment_partial" tools:ignore="PluralsCandidate">%1$d partial</string>
     <string name="playlist_download_batch_segment_failed" tools:ignore="PluralsCandidate">%1$d failed</string>
     <string name="playlist_download_started">Playlist download started</string>
+    <string name="watch_sync_category">Watch sync &amp; history</string>
+    <string name="watch_sync_category_summary">Cross-device resume and watch history</string>
+    <string name="enable_watch_sync">Cross-device watch sync</string>
+    <string name="enable_watch_sync_summary">Record watch positions and share them through a synced folder</string>
+    <string name="select_sync_folder">Sync folder</string>
+    <string name="select_sync_folder_summary">Pick a folder kept in sync by Syncthing or similar</string>
+    <string name="view_watch_history">Watch history</string>
+    <string name="view_watch_history_summary">Everything watched on all synced devices</string>
+    <string name="youtube_history_sync">Also report to YouTube (experimental)</string>
+    <string name="youtube_history_sync_summary">Tries to add watches to your YouTube history; may silently stop working</string>
+    <string name="youtube_history_sync_disabled">YouTube history sync stopped working and was turned off</string>
+    <string name="sync_folder_set">Sync folder set</string>
+    <string name="history_empty">Nothing watched yet</string>
+    <string name="clear_history_message">Delete all local watch history and resume positions?</string>
+    <string name="remove_from_history">Remove from history?</string>
+    <string name="mark_as_watched">Mark as watched</string>
+    <string name="marked_as_watched">Marked as watched</string>
+    <string name="block_channel">Block channel</string>
+    <string name="channel_blocked">Blocked %1$s</string>
+    <string name="channel_unblocked">Unblocked %1$s</string>
+    <string name="blocked_channels">Blocked channels</string>
+    <string name="blocked_channels_summary">Tap a channel to unblock it</string>
+    <string name="blocked_channels_empty">No blocked channels</string>
+    <string name="mark_as_unwatched">Mark as unwatched</string>
+    <string name="marked_as_unwatched">Marked as unwatched</string>
 </resources>
 

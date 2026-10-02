@@ -147,6 +147,11 @@
             android:exported="false" />
 
         <activity
+            android:name=".ui.history.WatchHistoryActivity"
+            android:configChanges="orientation|screenSize|keyboard|keyboardHidden|screenLayout|smallestScreenSize|uiMode"
+            android:exported="false" />
+
+        <activity
             android:name=".downloader.ui.DownloadActivity"
             android:configChanges="orientation|screenSize|keyboard|keyboardHidden|screenLayout|smallestScreenSize|uiMode"
             android:exported="false" />

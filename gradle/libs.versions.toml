@@ -61,6 +61,7 @@ mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockito" }
 #noinspection Aligned16KB
 mmkv = { module = "com.tencent:mmkv", version.ref = "mmkv" }
 activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
+documentfile = { group = "androidx.documentfile", name = "documentfile", version = "1.1.0" }
 constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 media = { module = "androidx.media:media", version.ref = "media" }
 nanojson = { module = "com.github.TeamNewPipe:nanojson", version.ref = "nanojson" }

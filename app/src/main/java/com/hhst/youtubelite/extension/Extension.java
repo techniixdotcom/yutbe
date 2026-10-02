@@ -65,6 +65,13 @@ public record Extension(String key, int title, int summary, int icon, List<Exten
 										toggle(SKIP_SPONSORS, R.string.skip_sponsors),
 										toggle(SKIP_SELF_PROMO, R.string.skip_sponsors_selfpromo),
 										toggle(SKIP_POI_HIGHLIGHT, R.string.skip_sponsors_highlight)
+						)),
+						page(R.string.watch_sync_category, R.string.watch_sync_category_summary, R.drawable.ic_update, List.of(
+										toggle(Constant.WATCH_SYNC, R.string.enable_watch_sync, R.string.enable_watch_sync_summary),
+										action(Constant.ACTION_SELECT_SYNC_FOLDER, R.string.select_sync_folder, R.string.select_sync_folder_summary),
+										action(Constant.ACTION_VIEW_WATCH_HISTORY, R.string.view_watch_history, R.string.view_watch_history_summary),
+										action(Constant.ACTION_BLOCKED_CHANNELS, R.string.blocked_channels, R.string.blocked_channels_summary),
+										toggle(Constant.YOUTUBE_HISTORY_SYNC, R.string.youtube_history_sync, R.string.youtube_history_sync_summary)
 						))
 		));
 	}
@@ -75,6 +82,14 @@ public record Extension(String key, int title, int summary, int icon, List<Exten
 
 	private static Extension toggle(String key, int title) {
 		return new Extension(key, title, 0, 0, List.of());
+	}
+
+	private static Extension toggle(String key, int title, int summary) {
+		return new Extension(key, title, summary, 0, List.of());
+	}
+
+	private static Extension action(String key, int title, int summary) {
+		return new Extension(key, title, summary, 0, List.of());
 	}
 
 	public boolean hasChildren() {

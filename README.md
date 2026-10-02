@@ -1,7 +1,7 @@
 YuTbe
 ============
 
-YuTbe is an advanced webview wrapper for YouTube. It is a continuation of the discontinued [Litube](https://github.com/HydeYYHH/litube) project. Many thanks to the original author.
+YuTbe is an advanced webview wrapper for YouTube.
 
 ## Features
 * [x] **Ad-free playback**
@@ -11,12 +11,6 @@ YuTbe is an advanced webview wrapper for YouTube. It is a continuation of the di
 * [x] **Background & Picture-in-Picture support**
 * [x] **Built-in video and playlist downloader**
 * [x] **Live stream chat support, etc**
-* [x] **Watched Videos are greyed out**
-* [x] **Long press to marked as Watched or Block**
-
-EXPERIMENTAL (don't expect it to work)
-* [x] **Sync between devices toggle on/off**
-* [x] **Sync to youtube toggle on/off**
 
 ## Screenshots
 
@@ -26,4 +20,6 @@ EXPERIMENTAL (don't expect it to work)
 
 If you encounter a bug, please check the GitHub repository to see if an issue has already been reported. If not, feel free to open a new one. Code contributions and pull requests are always welcome!
 
+---
 
+YuTbe is a community continuation of the discontinued [Litube](https://github.com/HydeYYHH/litube) project. Many thanks to the original author.

@@ -24,8 +24,8 @@ android {
         applicationId = "com.vidlite.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 100
-        versionName = "v1.0.0"
+        versionCode = 101
+        versionName = "v1.0.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
@@ -113,6 +113,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.mmkv)
     implementation(libs.activity)
+    implementation(libs.documentfile)
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.exoplayer.dash)
     implementation(libs.media3.exoplayer.hls)

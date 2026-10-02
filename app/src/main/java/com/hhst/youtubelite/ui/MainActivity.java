@@ -87,6 +87,8 @@ public final class MainActivity extends AppCompatActivity implements LifecycleEv
 	YoutubeExtractor youtubeExtractor;
 	@Inject
 	QueueRepository queueRepository;
+	@Inject
+	com.hhst.youtubelite.sync.WatchSyncManager watchSyncManager;
 	@Nullable
 	private PlaybackService playbackService;
 	@Nullable
@@ -170,6 +172,7 @@ public final class MainActivity extends AppCompatActivity implements LifecycleEv
 			}
 		};
 		bindService(new Intent(this, PlaybackService.class), serviceConnection, Context.BIND_AUTO_CREATE);
+		watchSyncManager.start();
 		ProcessLifecycleOwner.get().getLifecycle().addObserver(this);
 		appBackCallback = new OnBackPressedCallback(true) {
 			@Override

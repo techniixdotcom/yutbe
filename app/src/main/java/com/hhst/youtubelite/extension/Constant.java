@@ -20,6 +20,13 @@ public final class Constant {
 	public static final String ENABLE_HIDE_SHORTS = "enable_hide_shorts";
 	public static final String REMEMBER_QUALITY = "remember_quality";
 	public static final String REMEMBER_PLAYBACK_SPEED = "remember_playback_speed";
+	public static final String WATCH_SYNC = "watch_sync";
+	public static final String YOUTUBE_HISTORY_SYNC = "youtube_history_sync";
+	/** Pseudo-keys rendered as action rows instead of toggles. */
+	public static final String ACTION_PREFIX = "action:";
+	public static final String ACTION_SELECT_SYNC_FOLDER = ACTION_PREFIX + "select_sync_folder";
+	public static final String ACTION_VIEW_WATCH_HISTORY = ACTION_PREFIX + "view_watch_history";
+	public static final String ACTION_BLOCKED_CHANNELS = ACTION_PREFIX + "blocked_channels";
 	// Legacy key kept for migration only.
 	public static final String ENABLE_PLAYER_GESTURES = "enable_player_gestures";
 	public static final String GESTURE_TAP_WINDOWED = "gesture_tap_windowed";
@@ -65,6 +72,8 @@ public final class Constant {
 					Map.entry(ENABLE_IN_APP_MINI_PLAYER, true),
 					Map.entry(REMEMBER_RESIZE_MODE, false),
 					Map.entry(REMEMBER_PLAYBACK_SPEED, false),
+					Map.entry(WATCH_SYNC, true),
+					Map.entry(YOUTUBE_HISTORY_SYNC, false),
 					Map.entry(GESTURE_TAP_WINDOWED, true),
 					Map.entry(GESTURE_TAP_FULLSCREEN, true),
 					Map.entry(GESTURE_DOUBLE_TAP_WINDOWED, true),

@@ -34,6 +34,7 @@ import com.hhst.youtubelite.player.queue.QueueRepository;
 import com.hhst.youtubelite.ui.AboutActivity;
 import com.hhst.youtubelite.ui.MainActivity;
 import com.hhst.youtubelite.ui.MediaItemMenuDialog;
+import com.hhst.youtubelite.sync.WatchSyncManager;
 import com.hhst.youtubelite.util.ToastUtils;
 
 import java.time.LocalDateTime;
@@ -63,16 +64,22 @@ public final class JavascriptInterface {
 	private final QueueRepository queueRepository;
 	@Nullable
 	private final PlaybackHistory playbackHistory;
+	@Nullable
+	private final WatchSyncManager watchSyncManager;
 	@NonNull
 	private final Gson gson = new Gson();
 	@NonNull
 	private final Handler handler = new Handler(Looper.getMainLooper());
 
 	public JavascriptInterface(@NonNull YoutubeWebview webView, @NonNull YoutubeExtractor youtubeExtractor, @NonNull LitePlayer player, @NonNull ExtensionManager extensionManager, @NonNull TabManager tabManager, @NonNull QueueRepository queueRepository) {
-		this(webView, youtubeExtractor, player, extensionManager, tabManager, queueRepository, null);
+		this(webView, youtubeExtractor, player, extensionManager, tabManager, queueRepository, null, null);
 	}
 
 	public JavascriptInterface(@NonNull YoutubeWebview webView, @NonNull YoutubeExtractor youtubeExtractor, @NonNull LitePlayer player, @NonNull ExtensionManager extensionManager, @NonNull TabManager tabManager, @NonNull QueueRepository queueRepository, @Nullable PlaybackHistory playbackHistory) {
+		this(webView, youtubeExtractor, player, extensionManager, tabManager, queueRepository, playbackHistory, null);
+	}
+
+	public JavascriptInterface(@NonNull YoutubeWebview webView, @NonNull YoutubeExtractor youtubeExtractor, @NonNull LitePlayer player, @NonNull ExtensionManager extensionManager, @NonNull TabManager tabManager, @NonNull QueueRepository queueRepository, @Nullable PlaybackHistory playbackHistory, @Nullable WatchSyncManager watchSyncManager) {
 		this.context = webView.getContext();
 		this.webView = webView;
 		this.youtubeExtractor = youtubeExtractor;
@@ -81,6 +88,7 @@ public final class JavascriptInterface {
 		this.tabManager = tabManager;
 		this.queueRepository = queueRepository;
 		this.playbackHistory = playbackHistory;
+		this.watchSyncManager = watchSyncManager;
 	}
 
 	@Nullable
@@ -234,6 +242,29 @@ public final class JavascriptInterface {
 		handler.post(() -> context.startActivity(new Intent(context, AboutActivity.class)));
 	}
 
+	/** IDs of videos watched past 85%, for graying out thumbnails in feeds. */
+	@NonNull
+	@android.webkit.JavascriptInterface
+	public String watchedIds() {
+		try {
+			if (watchSyncManager == null) return "[]";
+			return gson.toJson(watchSyncManager.getWatchedVideoIds());
+		} catch (Exception e) {
+			return "[]";
+		}
+	}
+
+	/** Names of blocked channels, hidden from feeds by block_channels.js. */
+	@NonNull
+	@android.webkit.JavascriptInterface
+	public String getBlockedChannels() {
+		try {
+			return new com.hhst.youtubelite.sync.BlockedChannels().toJson();
+		} catch (Exception e) {
+			return "[]";
+		}
+	}
+
 	@android.webkit.JavascriptInterface
 	public void play(@Nullable String url) {
 		if (url != null) handler.post(() -> player.play(url));
@@ -340,7 +371,7 @@ public final class JavascriptInterface {
 		if (context instanceof Activity activity && (activity.isFinishing() || activity.isDestroyed())) {
 			return;
 		}
-		new MediaItemMenuDialog(context, payload, youtubeExtractor, queueRepository, player).show();
+		new MediaItemMenuDialog(context, payload, youtubeExtractor, queueRepository, player, watchSyncManager).show();
 	}
 
 	@android.webkit.JavascriptInterface
@@ -372,7 +403,17 @@ public final class JavascriptInterface {
 	@android.webkit.JavascriptInterface
 	@NonNull
 	public String getPlayedVideoIds() {
-		return playbackHistory != null ? playbackHistory.toJson() : "[]";
+		java.util.LinkedHashSet<String> ids = new java.util.LinkedHashSet<>();
+		if (playbackHistory != null) ids.addAll(playbackHistory.getIds());
+		// Also exclude everything watched past the threshold on any synced device,
+		// so autoplay-next never lands on a video that is effectively finished.
+		if (watchSyncManager != null) {
+			try {
+				ids.addAll(watchSyncManager.getWatchedVideoIds());
+			} catch (Exception ignored) {
+			}
+		}
+		return gson.toJson(new java.util.ArrayList<>(ids));
 	}
 
 	@android.webkit.JavascriptInterface

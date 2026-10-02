@@ -97,6 +97,8 @@ public class Engine {
 	@NonNull
 	private final PlaybackHistory playbackHistory;
 	@NonNull
+	private final com.hhst.youtubelite.sync.WatchSyncManager watchSync;
+	@NonNull
 	private final PlayerDataSource sources;
 	private final Handler handler = new Handler(Looper.getMainLooper());
 	@NonNull
@@ -114,6 +116,10 @@ public class Engine {
 				if (pos > SAFE_ZONE_MS && pos < duration - SAFE_ZONE_MS) {
 					prefs.persistProgress(videoId, pos, duration, TimeUnit.MILLISECONDS);
 				}
+			}
+			// Record into the cross-device watch ledger.
+			if (videoId != null && duration > 0 && pos > SAFE_ZONE_MS) {
+				watchSync.recordWatch(videoDetails, pos);
 			}
 			// Skip sponsor segments.
 			List<long[]> segments = sponsor.getSegments();
@@ -152,12 +158,14 @@ public class Engine {
 	              @NonNull TabManager tabManager,
 	              @NonNull SponsorBlockManager sponsor,
 	              @NonNull QueueRepository queueRepository,
-	              @NonNull PlaybackHistory playbackHistory) {
+	              @NonNull PlaybackHistory playbackHistory,
+	              @NonNull com.hhst.youtubelite.sync.WatchSyncManager watchSync) {
 		this.prefs = prefs;
 		this.tabManager = tabManager;
 		this.sponsor = sponsor;
 		this.queueRepository = queueRepository;
 		this.playbackHistory = playbackHistory;
+		this.watchSync = watchSync;
 		this.sources = new PlayerDataSource(simpleCache);
 		DefaultTrackSelector trackSelector = new DefaultTrackSelector(context, new AdaptiveTrackSelection.Factory());
 		trackSelector.setParameters(params(trackSelector).setTunnelingEnabled(true).build());
@@ -193,6 +201,11 @@ public class Engine {
 			@Override
 			public void onPlaybackStateChanged(int state) {
 				if (state == Player.STATE_ENDED) {
+					// Mark the video as fully watched in the ledger.
+					long duration = player.getDuration();
+					if (videoId != null && duration > 0) {
+						watchSync.recordWatch(videoDetails, duration);
+					}
 					if (isShortVideo()) {
 						player.seekTo(0);
 						player.play();
@@ -717,7 +730,9 @@ public class Engine {
 			boolean playlistPrevEnabled = !playlistAtHead || canGoBack;
 			return new QueueNav(false, true, true, false, playlistPrevEnabled);
 		}
-		return new QueueNav(false, false, false, false, canGoBack);
+		// No queue and no playlist: "next" still works, picking an unseen
+		// suggested video (playNextRelated).
+		return new QueueNav(false, true, true, false, canGoBack);
 	}
 
 	@Nullable
