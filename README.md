@@ -1,7 +1,7 @@
 YuTbe
 ============
 
-YuTbe is an advanced webview wrapper for YouTube.
+YuTbe is an advanced webview wrapper for YouTube. It is a continuation of the discontinued [Litube](https://github.com/HydeYYHH/litube) project. Many thanks to the original author.
 
 ## Features
 * [x] **Ad-free playback**
@@ -20,6 +20,4 @@ YuTbe is an advanced webview wrapper for YouTube.
 
 If you encounter a bug, please check the GitHub repository to see if an issue has already been reported. If not, feel free to open a new one. Code contributions and pull requests are always welcome!
 
----
 
-YuTbe is a community continuation of the discontinued [Litube](https://github.com/HydeYYHH/litube) project. Many thanks to the original author.
