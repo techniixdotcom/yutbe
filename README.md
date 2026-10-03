@@ -20,8 +20,8 @@ YuTbe is an advanced webview wrapper for YouTube.
 * [x] **Long press to marked as Watched or Block**
 
 EXPERIMENTAL (don't expect it to work)
-* [x] **Sync between devices toggle on/off**
-* [x] **Sync to youtube toggle on/off**
+* [x] **Sync watch timestamp/history between devices toggle on/off**
+* [x] **Sync watch timestamp/history to youtube toggle on/off**
 
 ## Screenshots
 
