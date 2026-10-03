@@ -3,7 +3,7 @@ YuTbe
 A continuation of the Litube project: https://github.com/HydeYYHH/litube
 
 
-YuTbe is an advanced WebView wrapper for YouTube with a native player, ad-free playback, SponsorBlock, mini-player, picture-in-picture, background play, a local queue with YouTube-style autoplay, and a built-in downloader. Source code: https://github.com/techniixdotcom/yutbe
+YuTbe is an advanced WebView wrapper for YouTube with a native player, ad-free playback, SponsorBlock, mini-player, picture-in-picture, background play, a local queue with YouTube-style autoplay, and a built-in downloader.
 
 Build
 
