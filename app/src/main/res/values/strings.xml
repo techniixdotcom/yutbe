@@ -200,5 +200,42 @@
     <string name="autoplay_suggestions">Autoplay suggested videos</string>
     <string name="update_check_unavailable">Update check is not configured for this build</string>
     <string name="update_api_url" translatable="false">https://api.github.com/repos/techniixdotcom/yutbe/releases/latest</string>
+    <string name="grey_watched_videos">Grey out watched videos</string>
+    <string name="grey_watched_videos_summary">Dims videos you have already watched</string>
+    <string name="watched_threshold">Counts as watched after</string>
+    <string name="watched_threshold_summary">How much of a video has to be played before it is greyed out</string>
+    <string name="watched_threshold_value">%1$d%% watched</string>
+    <string name="blocked_channels">Blocked channels</string>
+    <string name="blocked_channels_summary">Videos from these channels are hidden</string>
+    <string name="blocked_channels_empty">No channels are blocked. Long-press a video to block its channel.</string>
+    <string name="blocked_channels_unblock_title">Select channels to unblock</string>
+    <string name="unblock">Unblock</string>
+    <string name="gesture_swipe_down_minimize">Swipe down to minimize</string>
+    <string name="gesture_swipe_down_minimize_summary">Swipe down anywhere on the video to move it into a bar at the bottom of the screen. Brightness and volume swipes are turned off while this is on.</string>
+    <string name="mini_bar_restore">Open player</string>
+    <string name="mini_bar_previous">Previous video</string>
+    <string name="mini_bar_next">Next video</string>
+    <string name="mini_bar_play">Play</string>
+    <string name="mini_bar_pause">Pause</string>
+    <string name="mark_as_watched">Mark as watched</string>
+    <string name="mark_as_unwatched">Mark as unwatched</string>
+    <string name="marked_as_watched">Marked as watched</string>
+    <string name="marked_as_unwatched">Marked as unwatched</string>
+    <string name="block_channel">Block channel</string>
+    <string name="block_channel_named">Block %1$s</string>
+    <string name="block_channel_confirm">Hide all videos from %1$s? You can unblock it in Extensions › Interface › Blocked channels.</string>
+    <string name="block">Block</string>
+    <string name="channel_blocked">%1$s blocked</string>
+    <plurals name="blocked_channels_count">
+        <item quantity="one">%d channel blocked</item>
+        <item quantity="other">%d channels blocked</item>
+    </plurals>
+    <string name="disabled_by_swipe_minimize">Turned off while Swipe down to minimize is on</string>
+    <string name="looking_up_channel">Looking up the channel…</string>
+    <string name="channel_lookup_failed">Could not find the channel of this video</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_shorts">Shorts</string>
+    <string name="nav_subscriptions">Subscriptions</string>
+    <string name="nav_you">You</string>
 </resources>
 

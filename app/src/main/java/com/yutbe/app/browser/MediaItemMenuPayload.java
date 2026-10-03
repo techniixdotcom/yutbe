@@ -16,7 +16,7 @@ import java.net.URL;
  */
 public record MediaItemMenuPayload(@NonNull String videoId, @NonNull String videoUrl,
                                    @NonNull String title, @Nullable String author,
-                                   @Nullable String thumbnailUrl) {
+                                   @Nullable String thumbnailUrl, @Nullable String channelUrl) {
 
 	private static final Gson GSON = new Gson();
 	private static final String MOBILE_YOUTUBE_BASE = "https://m.youtube.com";
@@ -38,8 +38,9 @@ public record MediaItemMenuPayload(@NonNull String videoId, @NonNull String vide
 		String title = normalize(raw.title);
 		String author = normalize(raw.author);
 		String thumbnailUrl = normalize(raw.thumbnailUrl);
+		String channelUrl = normalize(raw.channelUrl);
 
-		return new MediaItemMenuPayload(videoId, videoUrl, title != null ? title : videoId, author, thumbnailUrl);
+		return new MediaItemMenuPayload(videoId, videoUrl, title != null ? title : videoId, author, thumbnailUrl, channelUrl);
 	}
 
 	@Nullable
@@ -79,5 +80,7 @@ public record MediaItemMenuPayload(@NonNull String videoId, @NonNull String vide
 		String author;
 		@SerializedName("thumbnailUrl")
 		String thumbnailUrl;
+		@SerializedName("channelUrl")
+		String channelUrl;
 	}
 }

@@ -276,6 +276,13 @@ public final class MainActivity extends AppCompatActivity implements LifecycleEv
 			}
 		}
 
+		// Only YouTube links are accepted from other apps.
+		if (url != null && url.regionMatches(true, 0, "http://", 0, 7)) {
+			url = "https://" + url.substring(7);
+		}
+		if (url != null && !UrlUtils.isYoutubeLink(url)) {
+			url = null;
+		}
 		if (url != null) {
 			if (isDownloadAction) {
 				String loadUrl = url.replace(Constant.YOUTUBE_MOBILE_HOST, "www.youtube.com");

@@ -14,6 +14,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.yutbe.app.Constant;
 import com.yutbe.app.R;
+import com.yutbe.app.filter.ContentFilters;
 import com.yutbe.app.cache.WebViewCachePolicy;
 import com.yutbe.app.extension.ExtensionManager;
 import com.yutbe.app.extractor.YoutubeExtractor;
@@ -48,6 +49,8 @@ public final class YoutubeFragment extends Fragment {
 	TabManager tabManager;
 	@Inject
 	QueueRepository queueRepository;
+	@Inject
+	ContentFilters contentFilters;
 	@Inject
 	OkHttpClient okHttpClient;
 	@Inject
@@ -117,6 +120,7 @@ public final class YoutubeFragment extends Fragment {
 		webView.setExtensionManager(extensionManager);
 		webView.setTabManager(tabManager);
 		webView.setQueueRepository(queueRepository);
+		webView.setContentFilters(contentFilters);
 		webView.setOkHttpClient(okHttpClient, webViewCachePolicy);
 		webView.setPoTokenContextStore(poTokenContextStore);
 		tabManager.injectScripts(webView);

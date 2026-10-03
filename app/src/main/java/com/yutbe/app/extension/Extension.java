@@ -10,6 +10,8 @@ import static com.yutbe.app.Constant.SKIP_POI_HIGHLIGHT;
 import static com.yutbe.app.Constant.SKIP_SELF_PROMO;
 import static com.yutbe.app.Constant.SKIP_SPONSORS;
 
+import androidx.annotation.NonNull;
+
 import com.yutbe.app.R;
 
 import java.util.List;
@@ -27,7 +29,10 @@ public record Extension(String key, int title, int summary, int icon, List<Exten
 		return page(R.string.extension, 0, 0, List.of(
 						page(R.string.interface_category, R.string.interface_summary, R.drawable.ic_settings, List.of(
 										toggle(Constant.ENABLE_DISPLAY_DISLIKES, R.string.display_dislikes),
-										toggle(Constant.ENABLE_HIDE_SHORTS, R.string.hide_shorts)
+										toggle(Constant.ENABLE_HIDE_SHORTS, R.string.hide_shorts),
+										toggle(Constant.ENABLE_GREY_WATCHED, R.string.grey_watched_videos, R.string.grey_watched_videos_summary),
+										item(Constant.WATCHED_THRESHOLD_PERCENT, R.string.watched_threshold, R.string.watched_threshold_summary),
+										item(Constant.ACTION_BLOCKED_CHANNELS, R.string.blocked_channels, R.string.blocked_channels_summary)
 						)),
 						page(R.string.player, R.string.playback_summary, R.drawable.ic_play, List.of(
 										toggle(REMEMBER_LAST_POSITION, R.string.remember_last_position),
@@ -37,6 +42,7 @@ public record Extension(String key, int title, int summary, int icon, List<Exten
 										toggle(REMEMBER_RESIZE_MODE, R.string.remember_resize_mode)
 						)),
 						page(R.string.gesture, R.string.gesture_summary, R.drawable.ic_gesture, List.of(
+										toggle(Constant.GESTURE_SWIPE_DOWN_MINIMIZE, R.string.gesture_swipe_down_minimize, R.string.gesture_swipe_down_minimize_summary),
 										page(R.string.gesture_single_tap, 0, 0, List.of(
 														toggle(Constant.GESTURE_TAP_WINDOWED, R.string.enable_in_windowed),
 														toggle(Constant.GESTURE_TAP_FULLSCREEN, R.string.enable_in_fullscreen)
@@ -85,6 +91,33 @@ public record Extension(String key, int title, int summary, int icon, List<Exten
 
 	private static Extension toggle(String key, int title) {
 		return new Extension(key, title, 0, 0, List.of());
+	}
+
+	private static Extension toggle(String key, int title, int summary) {
+		return new Extension(key, title, summary, 0, List.of());
+	}
+
+	private static Extension item(String key, int title, int summary) {
+		return new Extension(key, title, summary, 0, List.of());
+	}
+
+	/**
+	 * True when this item or one of its children controls one of the given keys.
+	 */
+	public boolean controlsAny(@NonNull List<String> keys) {
+		if (key != null && keys.contains(key)) return true;
+		for (Extension child : children) {
+			if (child.controlsAny(keys)) return true;
+		}
+		return false;
+	}
+
+	public boolean isPercent() {
+		return key != null && Constant.PERCENT_KEYS.contains(key);
+	}
+
+	public boolean isAction() {
+		return key != null && Constant.ACTION_KEYS.contains(key);
 	}
 
 	public boolean hasChildren() {

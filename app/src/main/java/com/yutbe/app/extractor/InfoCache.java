@@ -21,7 +21,7 @@ import javax.inject.Singleton;
 public final class InfoCache {
 	private static final String STREAM_KEY = "extractor:stream:";
 	private static final String INFO_KEY = "extractor:info:";
-	private static final String RELATED_KEY = "extractor:related:";
+	private static final String RELATED_KEY = "extractor:related2:";
 
 	@NonNull
 	private final MMKV kv;
@@ -50,14 +50,14 @@ public final class InfoCache {
 	}
 
 	@Nullable
-	public List<String> getRelatedVideoIds(@NonNull String videoId) {
-		String[] ids = read(RELATED_KEY + videoId, String[].class);
-		return ids == null ? null : new ArrayList<>(Arrays.asList(ids));
+	public List<RelatedVideo> getRelatedVideos(@NonNull String videoId) {
+		RelatedVideo[] items = read(RELATED_KEY + videoId, RelatedVideo[].class);
+		return items == null ? null : new ArrayList<>(Arrays.asList(items));
 	}
 
-	public void putRelatedVideoIds(@NonNull String videoId,
-	                               @NonNull List<String> ids) {
-		write(RELATED_KEY + videoId, ids.toArray(new String[0]), TimeUnit.HOURS.toMillis(6));
+	public void putRelatedVideos(@NonNull String videoId,
+	                             @NonNull List<RelatedVideo> items) {
+		write(RELATED_KEY + videoId, items.toArray(new RelatedVideo[0]), TimeUnit.HOURS.toMillis(6));
 	}
 
 	@Nullable

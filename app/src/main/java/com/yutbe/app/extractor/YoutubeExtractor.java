@@ -5,6 +5,7 @@ import androidx.annotation.Nullable;
 
 import com.google.gson.Gson;
 import com.yutbe.app.extractor.potoken.YuTbePoTokenProvider;
+import com.yutbe.app.filter.ContentFilters;
 
 import org.schabi.newpipe.extractor.Image;
 import org.schabi.newpipe.extractor.InfoItem;
@@ -80,6 +81,8 @@ public final class YoutubeExtractor {
 	private final AuthContextFactory auth;
 	@NonNull
 	private final ConcurrentMap<String, Task> tasks = new ConcurrentHashMap<>();
+	@NonNull
+	private final ContentFilters filters;
 
 	@Inject
 	public YoutubeExtractor(@NonNull DownloaderImpl downloader,
@@ -87,14 +90,16 @@ public final class YoutubeExtractor {
 	                        @NonNull AuthContextFactory auth,
 	                        @NonNull InfoCache cache,
 	                        @NonNull Executor executor,
-	                        @NonNull Gson gson) {
+	                        @NonNull Gson gson,
+	                        @NonNull ContentFilters filters) {
 		this((videoId, session) -> downloader.withExtractionSession(
 										() -> extract(WATCH_URL + videoId),
 										session),
 						cache,
 						executor,
 						gson,
-						auth);
+						auth,
+						filters);
 		NewPipe.init(downloader);
 		YoutubeStreamExtractor.setPoTokenProvider(yutbePoTokenProvider);
 	}
@@ -103,7 +108,9 @@ public final class YoutubeExtractor {
 	                 @NonNull InfoCache cache,
 	                 @NonNull Executor executor,
 	                 @NonNull Gson gson,
-	                 @NonNull AuthContextFactory auth) {
+	                 @NonNull AuthContextFactory auth,
+	                 @NonNull ContentFilters filters) {
+		this.filters = filters;
 		this.fetch = fetch;
 		this.cache = cache;
 		this.executor = executor;
@@ -204,19 +211,31 @@ public final class YoutubeExtractor {
 	}
 
 	/**
-	 * Returns suggested video ids for the given video, in YouTube's own order. Uses the cached
-	 * suggestions when available and otherwise performs an extraction.
+	 * Returns suggested video ids for the given video, in YouTube's own order, without videos
+	 * of blocked channels. Uses the cached suggestions when available and otherwise performs an
+	 * extraction.
 	 */
 	@NonNull
 	public CompletableFuture<List<String>> getRelatedVideoIds(@NonNull String videoId) {
-		List<String> cached = cache.getRelatedVideoIds(videoId);
+		List<RelatedVideo> cached = cache.getRelatedVideos(videoId);
 		if (cached != null && !cached.isEmpty()) {
-			return CompletableFuture.completedFuture(new ArrayList<>(cached));
+			return CompletableFuture.completedFuture(allowedIds(cached));
 		}
 		return getInfo(WATCH_URL + videoId, null, false).thenApply(ignored -> {
-			List<String> related = cache.getRelatedVideoIds(videoId);
-			return related != null ? new ArrayList<>(related) : new ArrayList<>();
+			List<RelatedVideo> related = cache.getRelatedVideos(videoId);
+			return related != null ? allowedIds(related) : new ArrayList<>();
 		});
+	}
+
+	@NonNull
+	private List<String> allowedIds(@NonNull List<RelatedVideo> related) {
+		List<String> ids = new ArrayList<>();
+		for (RelatedVideo item : related) {
+			if (item == null) continue;
+			if (filters.isChannelBlocked(item.uploaderName(), item.uploaderUrl())) continue;
+			ids.add(item.id());
+		}
+		return ids;
 	}
 
 	@NonNull
@@ -267,30 +286,31 @@ public final class YoutubeExtractor {
 		ensurePlayableSources(videoId, details.deliveries(), details.plan());
 		cache.putPlaybackDetails(videoId, details);
 		cache.putVideoDetails(videoId, details.video());
-		cache.putRelatedVideoIds(videoId, collectRelatedIds(streamInfo, videoId));
+		cache.putRelatedVideos(videoId, collectRelated(streamInfo, videoId));
 		return copy(details, PlaybackDetails.class);
 	}
 
 	@NonNull
-	private List<String> collectRelatedIds(@NonNull StreamInfo streamInfo,
-	                                       @NonNull String currentId) {
+	private List<RelatedVideo> collectRelated(@NonNull StreamInfo streamInfo,
+	                                          @NonNull String currentId) {
 		Set<String> ids = new LinkedHashSet<>();
+		List<RelatedVideo> out = new ArrayList<>();
 		List<InfoItem> items;
 		try {
 			items = streamInfo.getRelatedItems();
 		} catch (RuntimeException e) {
-			return new ArrayList<>();
+			return out;
 		}
 		for (InfoItem item : orEmpty(items)) {
 			if (!(item instanceof StreamInfoItem stream)) continue;
 			if (stream.isShortFormContent()) continue;
 			if (isLive(stream.getStreamType())) continue;
 			String id = getVideoId(stream.getUrl());
-			if (id == null || id.equals(currentId)) continue;
-			ids.add(id);
-			if (ids.size() >= MAX_RELATED_IDS) break;
+			if (id == null || id.equals(currentId) || !ids.add(id)) continue;
+			out.add(new RelatedVideo(id, stream.getUploaderName(), stream.getUploaderUrl()));
+			if (out.size() >= MAX_RELATED_IDS) break;
 		}
-		return new ArrayList<>(ids);
+		return out;
 	}
 
 	@NonNull

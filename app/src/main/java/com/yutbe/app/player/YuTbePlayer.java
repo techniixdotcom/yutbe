@@ -104,6 +104,15 @@ public class YuTbePlayer {
 	private Runnable onClose;
 	@Getter
 	private boolean inMiniPlayer;
+	private boolean miniBarMode;
+	@Nullable
+	private MiniBar miniBar;
+	@Nullable
+	private String currentTitle;
+	@Nullable
+	private String currentAuthor;
+	@Nullable
+	private String currentThumbnailUrl;
 	private boolean wasInPip;
 
 	@Inject
@@ -157,6 +166,7 @@ public class YuTbePlayer {
 			@Override
 			public void onIsPlayingChanged(boolean isPlaying) {
 				updateServiceProgress(isPlaying);
+				if (miniBarMode) miniBar().setPlaying(isPlaying);
 			}
 
 			@Override
@@ -217,7 +227,10 @@ public class YuTbePlayer {
 
 	public void refreshQueueNav() {
 		QueueNav availability = engine.getQueueNavigationAvailability();
-		activity.runOnUiThread(() -> controller.refreshQueueNavigationAvailability(availability));
+		activity.runOnUiThread(() -> {
+			controller.refreshQueueNavigationAvailability(availability);
+			miniBar().setNavigation(availability.isPreviousActionEnabled(), availability.isNextActionEnabled());
+		});
 		if (playbackSvc != null) {
 			playbackSvc.updateQueueNavigationAvailability(availability);
 		}
@@ -235,7 +248,14 @@ public class YuTbePlayer {
 			layer.setData(null, 0, TimeUnit.MILLISECONDS);
 			DefaultTimeBar bar = playerView.findViewById(R.id.exo_progress);
 			bar.setAdGroupTimesMs(null, null, 0);
-			playerView.show();
+			currentTitle = null;
+			currentAuthor = null;
+			currentThumbnailUrl = "https://img.youtube.com/vi/" + videoId + "/hqdefault.jpg";
+			if (inMiniPlayer && miniBarMode) {
+				updateMiniBar();
+			} else {
+				playerView.show();
+			}
 			controller.syncRotation(
 							DeviceUtils.isRotateOn(activity),
 							activity.getResources().getConfiguration().orientation);
@@ -266,6 +286,12 @@ public class YuTbePlayer {
 							}
 							this.activeId = videoId;
 							stateStore.setVideoId(videoId);
+							currentTitle = er.video().getTitle();
+							currentAuthor = er.video().getAuthor();
+							if (er.video().getThumbnailUrl() != null) {
+								currentThumbnailUrl = er.video().getThumbnailUrl();
+							}
+							updateMiniBar();
 
 							if (playbackSvc != null) {
 								PlaybackService.start(activity);
@@ -505,28 +531,99 @@ public class YuTbePlayer {
 	}
 
 	public void enterInAppMiniPlayer() {
+		enterInAppMiniPlayer(false);
+	}
+
+	/**
+	 * Enters the in-app mini player. With {@code bar} the video is moved into the bar at the
+	 * bottom of the screen instead of the floating window; playback continues.
+	 */
+	public void enterInAppMiniPlayer(boolean bar) {
 		inMiniPlayer = true;
+		miniBarMode = bar;
 		stateStore.setInMiniPlayer(true);
+		if (bar) {
+			if (controller.isFullscreen()) controller.exitFullscreenImmediately();
+			controller.enterMiniPlayer();
+			playerView.hide();
+			updateMiniBar();
+			miniBar().setPlaying(engine.isPlaying());
+			miniBar().show();
+			refreshQueueNav();
+			return;
+		}
 		playerView.enterInAppMiniPlayer();
 		controller.enterMiniPlayer();
 	}
 
 	public void exitInAppMiniPlayer() {
+		boolean wasBar = miniBarMode;
 		inMiniPlayer = false;
+		miniBarMode = false;
 		stateStore.setInMiniPlayer(false);
+		if (wasBar) {
+			miniBar().hide();
+			playerView.show();
+			controller.exitMiniPlayer();
+			return;
+		}
 		playerView.exitInAppMiniPlayer();
 		controller.exitMiniPlayer();
 	}
 
+	public boolean isInMiniBar() {
+		return inMiniPlayer && miniBarMode;
+	}
+
+	@NonNull
+	private MiniBar miniBar() {
+		MiniBar bar = miniBar;
+		if (bar == null) {
+			bar = new MiniBar(activity);
+			bar.setActions(
+							() -> {
+								Runnable restore = onRestore;
+								if (restore != null) restore.run();
+							},
+							engine::skipToPrevious,
+							() -> {
+								if (engine.isPlaying()) {
+									engine.pause();
+								} else {
+									if (engine.getPlaybackState() == Player.STATE_ENDED) engine.seekTo(0L);
+									engine.play();
+								}
+							},
+							engine::skipToNext,
+							() -> {
+								Runnable close = onClose;
+								hide();
+								if (close != null) close.run();
+							});
+			miniBar = bar;
+		}
+		return bar;
+	}
+
+	private void updateMiniBar() {
+		miniBar().setVideo(currentTitle, currentAuthor, currentThumbnailUrl);
+	}
+
 	public void restoreInAppMiniPlayerUiIfNeeded() {
 		if (!inMiniPlayer) return;
+		if (miniBarMode) {
+			updateMiniBar();
+			miniBar().setPlaying(engine.isPlaying());
+			miniBar().show();
+			return;
+		}
 		playerView.show();
 		playerView.enterInAppMiniPlayer();
 		controller.enterMiniPlayer();
 	}
 
 	public void suspendInAppMiniPlayerUiIfNeeded() {
-		if (!inMiniPlayer) return;
+		if (!inMiniPlayer || miniBarMode) return;
 		playerView.hide();
 	}
 
@@ -594,6 +691,8 @@ public class YuTbePlayer {
 			playerView.setMiniPlayerCallbacks(null, null);
 		});
 		inMiniPlayer = false;
+		miniBarMode = false;
+		if (miniBar != null) miniBar.hide();
 		engine.release();
 	}
 

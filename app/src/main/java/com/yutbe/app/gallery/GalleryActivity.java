@@ -77,7 +77,7 @@ public class GalleryActivity extends AppCompatActivity {
 
 		// Read the thumbnail list from the intent.
 		List<String> urlList = getIntent().getStringArrayListExtra("thumbnails");
-		String baseName = getIntent().getStringExtra("filename");
+		String baseName = safeFileName(getIntent().getStringExtra("filename"));
 
 		urls = urlList;
 		if (urls == null) urls = new ArrayList<>();
@@ -201,5 +201,13 @@ public class GalleryActivity extends AppCompatActivity {
 		public int getItemCount() {
 			return urls.size();
 		}
+	}
+
+	@NonNull
+	private static String safeFileName(@Nullable String name) {
+		String cleaned = name == null ? "" : name.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]", "_").trim();
+		while (cleaned.startsWith(".")) cleaned = cleaned.substring(1);
+		if (cleaned.isEmpty()) cleaned = "thumbnail";
+		return cleaned.length() > 120 ? cleaned.substring(0, 120) : cleaned;
 	}
 }

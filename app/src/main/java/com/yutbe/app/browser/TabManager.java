@@ -318,6 +318,12 @@ public class TabManager {
 		YoutubeWebview webView = tab.getWebView();
 		var prev = prev(tab);
 		var hasBack = tabs.size() > 1;
+		// With "swipe down to minimize" on, back sends the video to the bottom bar too.
+		if (extensionManager.isEnabled(com.yutbe.app.extension.Constant.GESTURE_SWIPE_DOWN_MINIMIZE)
+						&& Constant.PAGE_WATCH.equals(pageClass(tab))
+						&& minimizeWatch()) {
+			return true;
+		}
 		if (shouldSuspendBack(pageClass(tab), extensionManager.isEnabled(Constant.ENABLE_IN_APP_MINI_PLAYER), yutbePlayer().canSuspendWatch())) {
 			var prevTab = previousTab();
 			String prevTabUrl = prevTab != null ? prevTab.getUrl() : null;
@@ -352,6 +358,27 @@ public class TabManager {
 		return false;
 	}
 
+	/**
+	 * Moves the playing video into the bar at the bottom of the screen and shows the page the
+	 * user came from, the way swiping the player down works in the YouTube app.
+	 */
+	public boolean minimizeWatch() {
+		YoutubeFragment tab = this.tab;
+		if (tab == null || suspendedTab != null) return false;
+		if (!Constant.PAGE_WATCH.equals(pageClass(tab)) || !yutbePlayer().canSuspendWatch()) return false;
+		var prevTab = previousTab();
+		var ft = fm().beginTransaction();
+		suspendTab(ft);
+		YoutubeFragment next = prevTab != null ? prevTab : home(ft);
+		this.tab = next;
+		ft.show(next);
+		commitAndRun(ft, () -> {
+			enterMiniPlayer(true);
+			onTabChanged();
+		});
+		return true;
+	}
+
 	private void suspendTab(@NonNull FragmentTransaction ft) {
 		YoutubeFragment tab = this.tab;
 		if (tab == null) return;
@@ -361,6 +388,10 @@ public class TabManager {
 	}
 
 	private void enterMiniPlayer() {
+		enterMiniPlayer(false);
+	}
+
+	private void enterMiniPlayer(boolean bar) {
 		YuTbePlayer yutbePlayer = yutbePlayer();
 		yutbePlayer.setMiniPlayerCallbacks(() -> {
 			YoutubeFragment suspended = suspendedTab;
@@ -390,7 +421,7 @@ public class TabManager {
 			activePlayer.exitInAppMiniPlayer();
 			activePlayer.setMiniPlayerCallbacks(null, null);
 		});
-		yutbePlayer.enterInAppMiniPlayer();
+		yutbePlayer.enterInAppMiniPlayer(bar);
 	}
 
 	private void commitAndRun(@NonNull FragmentTransaction ft, @NonNull Runnable afterCommit) {

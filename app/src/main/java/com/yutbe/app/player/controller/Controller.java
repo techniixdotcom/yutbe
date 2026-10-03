@@ -1082,6 +1082,13 @@ public class Controller {
 		applyControllerState(previousState, !isInPiP);
 	}
 
+	/**
+	 * Sends the playing video to the bar at the bottom of the screen.
+	 */
+	public boolean minimizeToBar() {
+		return tabManager.minimizeWatch();
+	}
+
 	public void enterMiniPlayer() {
 		final ControllerState.Mode previousState = state.mode();
 		state = state.enterMiniPlayer();

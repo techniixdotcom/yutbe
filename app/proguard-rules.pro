@@ -104,3 +104,6 @@
 # Gson models stored in MMKV
 -keep class com.yutbe.app.player.common.PlayerPreferences$* { *; }
 -keep class com.yutbe.app.player.queue.QueueItem { *; }
+
+# Content filter models stored with Gson
+-keep class com.yutbe.app.filter.** { *; }

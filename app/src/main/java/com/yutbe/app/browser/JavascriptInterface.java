@@ -19,6 +19,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import com.yutbe.app.R;
+import com.yutbe.app.filter.ContentFilters;
 import com.yutbe.app.downloader.ui.DownloadActivity;
 import com.yutbe.app.downloader.ui.DownloadDialog;
 import com.yutbe.app.downloader.ui.PlaylistDownloadDialog;
@@ -61,11 +62,14 @@ public final class JavascriptInterface {
 	@NonNull
 	private final QueueRepository queueRepository;
 	@NonNull
+	private final ContentFilters contentFilters;
+	@NonNull
 	private final Gson gson = new Gson();
 	@NonNull
 	private final Handler handler = new Handler(Looper.getMainLooper());
 
-	public JavascriptInterface(@NonNull YoutubeWebview webView, @NonNull YoutubeExtractor youtubeExtractor, @NonNull YuTbePlayer player, @NonNull ExtensionManager extensionManager, @NonNull TabManager tabManager, @NonNull QueueRepository queueRepository) {
+	public JavascriptInterface(@NonNull YoutubeWebview webView, @NonNull YoutubeExtractor youtubeExtractor, @NonNull YuTbePlayer player, @NonNull ExtensionManager extensionManager, @NonNull TabManager tabManager, @NonNull QueueRepository queueRepository, @NonNull ContentFilters contentFilters) {
+		this.contentFilters = contentFilters;
 		this.context = webView.getContext();
 		this.webView = webView;
 		this.youtubeExtractor = youtubeExtractor;
@@ -133,6 +137,7 @@ public final class JavascriptInterface {
 
 	@android.webkit.JavascriptInterface
 	public void finishRefresh() {
+		if (!webView.isTrustedPage()) return;
 		handler.post(() -> {
 			if (webView.getParent() instanceof SwipeRefreshLayout)
 				((SwipeRefreshLayout) webView.getParent()).setRefreshing(false);
@@ -141,6 +146,7 @@ public final class JavascriptInterface {
 
 	@android.webkit.JavascriptInterface
 	public void setRefreshLayoutEnabled(boolean enabled) {
+		if (!webView.isTrustedPage()) return;
 		handler.post(() -> {
 			if (webView.getParent() instanceof SwipeRefreshLayout)
 				((SwipeRefreshLayout) webView.getParent()).setEnabled(enabled);
@@ -149,11 +155,13 @@ public final class JavascriptInterface {
 
 	@android.webkit.JavascriptInterface
 	public void download(@Nullable String url) {
+		if (!webView.isTrustedPage()) return;
 		if (url != null) handler.post(() -> new DownloadDialog(url, context, youtubeExtractor).show());
 	}
 
 	@android.webkit.JavascriptInterface
 	public void downloadPlaylist(@Nullable String payloadJson) {
+		if (!webView.isTrustedPage()) return;
 		if (payloadJson == null || payloadJson.isBlank()) return;
 		JsonObject payload;
 		try {
@@ -207,6 +215,7 @@ public final class JavascriptInterface {
 
 	@android.webkit.JavascriptInterface
 	public void extension() {
+		if (!webView.isTrustedPage()) return;
 		handler.post(() -> {
 			Intent intent = ExtensionActivity.intent(context);
 			if (!(context instanceof Activity)) {
@@ -218,21 +227,25 @@ public final class JavascriptInterface {
 
 	@android.webkit.JavascriptInterface
 	public void download() {
+		if (!webView.isTrustedPage()) return;
 		handler.post(() -> context.startActivity(new Intent(context, DownloadActivity.class)));
 	}
 
 	@android.webkit.JavascriptInterface
 	public void about() {
+		if (!webView.isTrustedPage()) return;
 		handler.post(() -> context.startActivity(new Intent(context, AboutActivity.class)));
 	}
 
 	@android.webkit.JavascriptInterface
 	public void play(@Nullable String url) {
+		if (!webView.isTrustedPage()) return;
 		if (url != null) handler.post(() -> player.play(url));
 	}
 
 	@android.webkit.JavascriptInterface
 	public void showHint(@Nullable String text, long durationMs) {
+		if (!webView.isTrustedPage()) return;
 		if (text == null) return;
 		handler.post(() -> {
 			MainActivity activity = getMainActivity();
@@ -244,6 +257,7 @@ public final class JavascriptInterface {
 
 	@android.webkit.JavascriptInterface
 	public void hideHint() {
+		if (!webView.isTrustedPage()) return;
 		handler.post(() -> {
 			MainActivity activity = getMainActivity();
 			if (activity != null) {
@@ -254,6 +268,7 @@ public final class JavascriptInterface {
 
 	@android.webkit.JavascriptInterface
 	public void goBack() {
+		if (!webView.isTrustedPage()) return;
 		handler.post(() -> {
 			MainActivity activity = getMainActivity();
 			if (activity != null) {
@@ -279,6 +294,7 @@ public final class JavascriptInterface {
 
 	@android.webkit.JavascriptInterface
 	public void addToQueue(@Nullable String itemJson) {
+		if (!webView.isTrustedPage()) return;
 		if (itemJson == null) return;
 		handler.post(() -> {
 			try {
@@ -306,6 +322,7 @@ public final class JavascriptInterface {
 
 	@android.webkit.JavascriptInterface
 	public void openWith(@Nullable String url) {
+		if (!webView.isTrustedPage()) return;
 		if (url == null || url.isBlank()) return;
 		handler.post(() -> {
 			Intent send = new Intent(Intent.ACTION_SEND);
@@ -319,11 +336,13 @@ public final class JavascriptInterface {
 		if (context instanceof Activity activity && (activity.isFinishing() || activity.isDestroyed())) {
 			return;
 		}
-		new MediaItemMenuDialog(context, payload, youtubeExtractor, queueRepository, player).show();
+		new MediaItemMenuDialog(context, payload, youtubeExtractor, queueRepository, player, contentFilters,
+						webView::syncPreferences).show();
 	}
 
 	@android.webkit.JavascriptInterface
 	public void showMediaItemMenu(@Nullable String payloadJson) {
+		if (!webView.isTrustedPage()) return;
 		MediaItemMenuPayload payload = parseMediaItemMenuPayload(payloadJson);
 		if (payload == null) return;
 		handler.post(() -> launchMediaItemMenu(payload));
@@ -331,31 +350,37 @@ public final class JavascriptInterface {
 
 	@android.webkit.JavascriptInterface
 	public void showQueueItemUnavailable() {
+		if (!webView.isTrustedPage()) return;
 		ToastUtils.show(context, R.string.queue_item_unavailable);
 	}
 
 	@android.webkit.JavascriptInterface
 	public boolean isQueueEnabled() {
+		if (!webView.isTrustedPage()) return false;
 		return queueRepository.isEnabled();
 	}
 
 	@android.webkit.JavascriptInterface
 	public void hidePlayer() {
+		if (!webView.isTrustedPage()) return;
 		handler.post(tabManager::hidePlayer);
 	}
 
 	@android.webkit.JavascriptInterface
 	public void setPlayerHeight(int height) {
+		if (!webView.isTrustedPage()) return;
 		handler.post(() -> player.setHeight(height));
 	}
 
 	@android.webkit.JavascriptInterface
 	public boolean seekLoadedVideo(@Nullable String url, long positionMs) {
+		if (!webView.isTrustedPage()) return false;
 		return player.seekLoadedVideo(url, positionMs);
 	}
 
 	@android.webkit.JavascriptInterface
 	public void onPosterLongPress(@Nullable String urlsJson) {
+		if (!webView.isTrustedPage()) return;
 		if (urlsJson != null) {
 			handler.post(() -> {
 				List<String> urls = gson.fromJson(urlsJson, new TypeToken<List<String>>() {
@@ -370,18 +395,40 @@ public final class JavascriptInterface {
 
 	@NonNull
 	@android.webkit.JavascriptInterface
+	public String getNavLabels() {
+		if (!webView.isTrustedPage()) return "{}";
+		JsonObject labels = new JsonObject();
+		labels.addProperty("home", context.getString(R.string.nav_home));
+		labels.addProperty("shorts", context.getString(R.string.nav_shorts));
+		labels.addProperty("subscriptions", context.getString(R.string.nav_subscriptions));
+		labels.addProperty("you", context.getString(R.string.nav_you));
+		return labels.toString();
+	}
+
+	@NonNull
+	@android.webkit.JavascriptInterface
+	public String getContentFilters() {
+		if (!webView.isTrustedPage()) return "{}";
+		return contentFilters.scriptData();
+	}
+
+	@NonNull
+	@android.webkit.JavascriptInterface
 	public String getPreferences() {
+		if (!webView.isTrustedPage()) return "{}";
 		return gson.toJson(extensionManager.getAllPreferences());
 	}
 
 	@android.webkit.JavascriptInterface
 	public void openTab(@Nullable String url, @Nullable String tag) {
+		if (!webView.isTrustedPage()) return;
 		if (url == null || tag == null) return;
 		handler.post(() -> tabManager.openTab(url, tag));
 	}
 
 	@android.webkit.JavascriptInterface
 	public long getResumePosition(@Nullable String vid) {
+		if (!webView.isTrustedPage()) return 0L;
 		return player.getResumePosition(vid);
 	}
 

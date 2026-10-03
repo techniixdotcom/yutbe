@@ -108,6 +108,25 @@
                     android:src="@drawable/ic_download"
                     app:tint="?attr/colorOnSurface" />
             </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/action_toggle_watched"
+                style="@style/Widget.Material3.Button.TextButton.Icon"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="start|center_vertical"
+                android:text="@string/mark_as_watched"
+                app:icon="@drawable/ic_watched" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/action_block_channel"
+                style="@style/Widget.Material3.Button.TextButton.Icon"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="start|center_vertical"
+                android:text="@string/block_channel"
+                app:icon="@drawable/ic_block" />
         </LinearLayout>
     </ScrollView>
 </LinearLayout>

@@ -19,6 +19,25 @@ import java.util.Map;
 public final class Constant {
 	public static final String ENABLE_DISPLAY_DISLIKES = "enable_display_dislikes";
 	public static final String ENABLE_HIDE_SHORTS = "enable_hide_shorts";
+	public static final String ENABLE_GREY_WATCHED = "enable_grey_watched";
+	public static final String WATCHED_THRESHOLD_PERCENT = "watched_threshold_percent";
+	public static final String GESTURE_SWIPE_DOWN_MINIMIZE = "gesture_swipe_down_minimize";
+	public static final String ACTION_BLOCKED_CHANNELS = "action_blocked_channels";
+	public static final int DEFAULT_WATCHED_THRESHOLD_PERCENT = 90;
+	public static final int MIN_WATCHED_THRESHOLD_PERCENT = 5;
+	public static final int MAX_WATCHED_THRESHOLD_PERCENT = 100;
+	public static final Map<String, Integer> DEFAULT_INT_PREFERENCES = Map.of(
+					WATCHED_THRESHOLD_PERCENT, DEFAULT_WATCHED_THRESHOLD_PERCENT);
+	public static final List<String> PERCENT_KEYS = List.of(WATCHED_THRESHOLD_PERCENT);
+	public static final List<String> ACTION_KEYS = List.of(ACTION_BLOCKED_CHANNELS);
+	/**
+	 * Gestures that are turned off while swipe down to minimize is on.
+	 */
+	public static final List<String> MINIMIZE_DISABLED_KEYS = List.of(
+					"gesture_brightness_windowed",
+					"gesture_brightness_fullscreen",
+					"gesture_volume_windowed",
+					"gesture_volume_fullscreen");
 	public static final String REMEMBER_QUALITY = "remember_quality";
 	public static final String REMEMBER_PLAYBACK_SPEED = "remember_playback_speed";
 	// Legacy key kept for migration only.
@@ -56,6 +75,8 @@ public final class Constant {
 	public static final Map<String, Boolean> DEFAULT_PREFERENCES = Map.ofEntries(
 					Map.entry(ENABLE_DISPLAY_DISLIKES, true),
 					Map.entry(ENABLE_HIDE_SHORTS, false),
+					Map.entry(ENABLE_GREY_WATCHED, false),
+					Map.entry(GESTURE_SWIPE_DOWN_MINIMIZE, false),
 					Map.entry(SKIP_SPONSORS, true),
 					Map.entry(SKIP_SELF_PROMO, true),
 					Map.entry(SKIP_POI_HIGHLIGHT, true),

@@ -37,6 +37,38 @@ public final class UrlUtils {
 		return isAllowedHost(uri.getHost());
 	}
 
+	/**
+	 * True for https pages on youtube.com, the only pages trusted with the native bridge.
+	 */
+	public static boolean isTrustedPageUrl(@Nullable String url) {
+		if (url == null || url.isEmpty()) return false;
+		try {
+			URI uri = URI.create(url);
+			String host = uri.getHost();
+			return "https".equalsIgnoreCase(uri.getScheme())
+							&& host != null
+							&& isYoutubeHost(host.toLowerCase(Locale.ROOT));
+		} catch (IllegalArgumentException ignored) {
+			return false;
+		}
+	}
+
+	/**
+	 * True for https links to youtube.com or youtu.be.
+	 */
+	public static boolean isYoutubeLink(@Nullable String url) {
+		if (isTrustedPageUrl(url)) return true;
+		try {
+			URI uri = URI.create(url);
+			String host = uri.getHost();
+			return "https".equalsIgnoreCase(uri.getScheme())
+							&& host != null
+							&& "youtu.be".equalsIgnoreCase(host);
+		} catch (IllegalArgumentException | NullPointerException ignored) {
+			return false;
+		}
+	}
+
 	public static boolean isAllowedUrl(@Nullable String url) {
 		if (url == null || url.isEmpty()) return false;
 		try {

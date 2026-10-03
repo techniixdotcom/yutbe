@@ -39,6 +39,7 @@ import com.yutbe.app.extractor.StreamCandidate;
 import com.yutbe.app.extractor.StreamCatalog;
 import com.yutbe.app.extractor.VideoDetails;
 import com.yutbe.app.extractor.YoutubeExtractor;
+import com.yutbe.app.filter.ContentFilters;
 import com.yutbe.app.player.YuTbePlayerView;
 import com.yutbe.app.player.common.PlayerLoopMode;
 import com.yutbe.app.player.common.PlayerPreferences;
@@ -108,6 +109,9 @@ public class Engine {
 			if (!player.isPlaying()) return;
 			long pos = player.getCurrentPosition();
 			long duration = player.getDuration();
+			if (videoId != null && duration > 0) {
+				contentFilters.recordProgress(videoId, pos, duration);
+			}
 			// Persist playback progress. Once the end of the video is reached the saved position is
 			// dropped, so a finished video starts from the beginning when it is opened again.
 			if (videoId != null && duration > 0 && prefs.getExtensionManager().isEnabled(Constant.REMEMBER_LAST_POSITION)) {
@@ -154,6 +158,8 @@ public class Engine {
 	private final Set<String> failedClients = new HashSet<>();
 	@NonNull
 	private final YoutubeExtractor extractor;
+	@NonNull
+	private final ContentFilters contentFilters;
 	private int recoveries;
 	private boolean watchedMarked;
 	private long autoplayToken;
@@ -166,8 +172,10 @@ public class Engine {
 	              @NonNull TabManager tabManager,
 	              @NonNull SponsorBlockManager sponsor,
 	              @NonNull QueueRepository queueRepository,
-	              @NonNull YoutubeExtractor extractor) {
+	              @NonNull YoutubeExtractor extractor,
+	              @NonNull ContentFilters contentFilters) {
 		this.extractor = extractor;
+		this.contentFilters = contentFilters;
 		this.prefs = prefs;
 		this.tabManager = tabManager;
 		this.sponsor = sponsor;
@@ -196,6 +204,7 @@ public class Engine {
 				if (state == Player.STATE_ENDED) {
 					if (videoId != null) {
 						prefs.clearProgress(videoId);
+						contentFilters.recordProgress(videoId, 1L, 1L);
 					}
 					if (isShortVideo()) {
 						player.seekTo(0);

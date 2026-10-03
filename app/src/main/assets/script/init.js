@@ -106,7 +106,10 @@
                 '.yt-core-attributed-string'
             ]),
             mediaAuthor: Object.freeze([
+                '.YtmBadgeAndBylineRendererItemByline',
+                'ytm-badge-and-byline-renderer .yt-core-attributed-string',
                 'ytm-badge-and-byline-renderer span[dir="auto"]',
+                'ytm-badge-and-byline-renderer',
                 '.media-item-byline .yt-core-attributed-string',
                 '.media-item-byline',
                 '.ytLockupViewModelMetadata .yt-core-attributed-string',
@@ -602,8 +605,15 @@
                     url: normalizedUrl.toString(),
                     title: DOM.text(mediaItem, Selectors.mediaTitle) || metadataLink?.getAttribute?.('title') || videoId,
                     author: DOM.text(mediaItem, Selectors.mediaAuthor),
+                    channelUrl: Queue.channelLink(mediaItem),
                     thumbnailUrl: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
                 };
+            },
+
+            channelLink(root) {
+                if (!(root instanceof Element)) return null;
+                const link = root.querySelector('a[href^="/@"], a[href^="/channel/"], a[href^="/c/"], a[href^="/user/"], a[href*="youtube.com/@"], a[href*="youtube.com/channel/"]');
+                return link ? (link.getAttribute('href') || link.href || null) : null;
             }
         };
 

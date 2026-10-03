@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-umask 077
+umask 022
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+YUTBE_HOME_OVERRIDE="${YUTBE_HOME:-}"
 YUTBE_HOME="${YUTBE_HOME:-$HOME/.yutbe}"
 JDK_MAJOR=21
 JDK_DIR="$YUTBE_HOME/jdk-$JDK_MAJOR"
@@ -18,10 +19,35 @@ log() { printf '\033[1;32m[YuTbe]\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[YuTbe] WARNING:\033[0m %s\n' "$*" >&2; }
 die() { printf '\033[1;31m[YuTbe] ERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 
+owner_of() {
+	stat -c '%u:%g' "$1" 2>/dev/null || stat -f '%u:%g' "$1"
+}
+
+restore_project_access() {
+	local paths=("$ROOT/.gradle" "$ROOT/build" "$ROOT/app/build" "$ROOT/dist" "$ROOT/build.log"
+		"$ROOT/local.properties" "$ROOT/newpipe-extractor/.gradle" "$ROOT/newpipe-extractor/build"
+		"$ROOT/newpipe-extractor/extractor/build" "$ROOT/.kotlin")
+	local existing=()
+	local path
+	for path in "${paths[@]}"; do
+		[[ -e "$path" ]] && existing+=("$path")
+	done
+	[[ ${#existing[@]} -gt 0 ]] || return 0
+	if [[ "$(id -u)" -eq 0 ]]; then
+		local owner
+		owner="$(owner_of "$ROOT" || true)"
+		if [[ -n "$owner" && "$owner" != "0:0" ]]; then
+			chown -R "$owner" "${existing[@]}" 2>/dev/null || true
+		fi
+	fi
+	chmod -R u+rwX,go+rX "${existing[@]}" 2>/dev/null || true
+}
+
 cleanup() {
 	if [[ -n "$TMP_DIR" && -d "$TMP_DIR" ]]; then
 		rm -rf "$TMP_DIR"
 	fi
+	restore_project_access
 }
 on_error() {
 	local code=$?
@@ -33,11 +59,25 @@ trap 'on_error $LINENO' ERR
 
 usage() {
 	cat <<'EOF'
-Usage: ./BUILD.sh [--clean] [--debug] [--help]
+Usage: ./BUILD.sh [--clean] [--debug] [--install] [--reinstall] [--fix-permissions] [--import-key DIR] [--help]
 
-  --clean   delete previous build outputs before building
-  --debug   build a debug APK instead of the signed release APK
-  --help    show this help
+  --clean            delete previous build outputs before building
+  --debug            build a debug APK instead of the signed release APK
+  --install          install the APK on the phone connected over USB (USB debugging on);
+                     if the phone has YuTbe signed with an older key that is still on
+                     this computer, that key is picked automatically
+  --reinstall        like --install, but if the phone's YuTbe was signed with a key
+                     that no longer exists, uninstall it first (its settings, history
+                     and login are lost)
+  --fix-permissions  give the project folder back to you if an earlier run (for
+                     example with sudo) left files you cannot change or delete
+  --import-key DIR   use the signing key in DIR (yutbe-release.p12 + signing.env),
+                     for example /root/.yutbe/signing, so the APK can update an
+                     installed YuTbe that was signed with that key
+  --help             show this help
+
+Run it as your normal user, without sudo. It asks for your password itself
+only if system packages have to be installed.
 
 Environment:
   YUTBE_HOME   where the JDK, Android SDK and signing key are kept (default: ~/.yutbe)
@@ -46,14 +86,84 @@ EOF
 
 CLEAN=0
 VARIANT="release"
+FIX_PERMISSIONS=0
+INSTALL=0
+REINSTALL=0
+APK_OUT=""
+IMPORT_KEY=""
+EXPECT_KEY_DIR=0
 for arg in "$@"; do
+	if [[ "$EXPECT_KEY_DIR" -eq 1 ]]; then
+		IMPORT_KEY="$arg"
+		EXPECT_KEY_DIR=0
+		continue
+	fi
 	case "$arg" in
+		--import-key) EXPECT_KEY_DIR=1 ;;
+		--import-key=*) IMPORT_KEY="${arg#--import-key=}" ;;
 		--clean) CLEAN=1 ;;
+		--install) INSTALL=1 ;;
+		--reinstall) INSTALL=1; REINSTALL=1 ;;
 		--debug) VARIANT="debug" ;;
+		--fix-permissions) FIX_PERMISSIONS=1 ;;
 		--help|-h) usage; exit 0 ;;
 		*) usage; die "Unknown option: $arg" ;;
 	esac
 done
+if [[ "$EXPECT_KEY_DIR" -eq 1 ]]; then
+	usage
+	die "--import-key needs the folder that holds yutbe-release.p12 and signing.env"
+fi
+
+# Building as root (for example "sudo ./BUILD.sh") leaves root-owned files that the normal user
+# cannot delete, so a sudo run is handed back to the user who started it.
+if [[ "$(id -u)" -eq 0 && -n "${SUDO_USER:-}" && "$SUDO_USER" != "root" && "$FIX_PERMISSIONS" -eq 0 ]]; then
+	log "Started with sudo; continuing as $SUDO_USER so every file stays yours"
+	exec sudo -u "$SUDO_USER" -H bash "$ROOT/BUILD.sh" "$@"
+fi
+
+fix_permissions() {
+	local uid gid home
+	home="$HOME"
+	if [[ "$(id -u)" -eq 0 && -n "${SUDO_USER:-}" ]]; then
+		[[ "$SUDO_USER" =~ ^[A-Za-z0-9._-]+$ ]] || die "Unexpected SUDO_USER value"
+		uid="$(id -u "$SUDO_USER")"
+		gid="$(id -g "$SUDO_USER")"
+		home="$(getent passwd "$SUDO_USER" 2>/dev/null | cut -d: -f6 || true)"
+		if [[ -z "$home" ]]; then
+			home="$(eval echo "~$SUDO_USER")"
+		fi
+	else
+		uid="$(id -u)"
+		gid="$(id -g)"
+	fi
+	local user_yutbe_home="${YUTBE_HOME_OVERRIDE:-$home/.yutbe}"
+	local target
+	for target in "$ROOT" "$user_yutbe_home"; do
+		[[ -e "$target" ]] || continue
+		log "Giving $target back to user $uid"
+		if [[ "$(id -u)" -eq 0 ]]; then
+			chown -R "$uid:$gid" "$target"
+		elif ! find "$target" ! -user "$uid" -print -quit 2>/dev/null | grep -q .; then
+			:
+		elif command -v sudo >/dev/null 2>&1; then
+			sudo chown -R "$uid:$gid" "$target"
+		else
+			die "Some files in $target belong to another user and sudo is not available. Run as root: chown -R $uid:$gid \"$target\""
+		fi
+		chmod -R u+rwX "$target"
+	done
+	if [[ -d "$user_yutbe_home/signing" ]]; then
+		chmod 700 "$user_yutbe_home/signing"
+		find "$user_yutbe_home/signing" -type f -exec chmod 600 {} +
+	fi
+	log "Done. You can now move, change and delete the project folder normally."
+}
+
+if [[ "$FIX_PERMISSIONS" -eq 1 ]]; then
+	fix_permissions
+	exit 0
+fi
 
 exec > >(tee -a "$LOG_FILE") 2>&1
 log "Build started $(date '+%Y-%m-%d %H:%M:%S')"
@@ -216,36 +326,131 @@ random_secret() {
 	od -An -tx1 -N32 /dev/urandom | tr -d ' \n'
 }
 
+# Reads a file that may belong to root (left behind by an earlier "sudo ./BUILD.sh").
+read_protected() {
+	if [[ -r "$1" ]]; then
+		cat "$1"
+	elif [[ "$(id -u)" -ne 0 ]] && command -v sudo >/dev/null 2>&1; then
+		sudo cat "$1"
+	else
+		return 1
+	fi
+}
+
+protected_exists() {
+	if [[ -e "$1" ]]; then
+		return 0
+	fi
+	[[ "$(id -u)" -ne 0 ]] && command -v sudo >/dev/null 2>&1 && sudo test -e "$1"
+}
+
+# Reads the password from a signing.env file without executing it.
+signing_password_from() {
+	local line value
+	while IFS= read -r line; do
+		if [[ "$line" =~ ^YUTBE_KEYSTORE_PASSWORD=([0-9A-Za-z]+)$ ]]; then
+			value="${BASH_REMATCH[1]}"
+		fi
+	done
+	[[ -n "${value:-}" ]] || return 1
+	printf '%s' "$value"
+}
+
+write_signing_env() {
+	(umask 077; {
+		printf 'YUTBE_KEYSTORE_PASSWORD=%s\n' "$1"
+		printf 'YUTBE_KEY_ALIAS=yutbe\n'
+	} > "$SIGNING_ENV")
+	chmod 600 "$SIGNING_ENV"
+}
+
+load_signing_key() {
+	local password
+	password="$(signing_password_from < "$SIGNING_ENV")" || die "$SIGNING_ENV is damaged"
+	export YUTBE_KEYSTORE_FILE="$KEYSTORE"
+	export YUTBE_KEYSTORE_PASSWORD="$password"
+	export YUTBE_KEY_ALIAS="yutbe"
+	export YUTBE_KEY_PASSWORD="$password"
+	local fingerprint
+	fingerprint="$("$JDK_DIR/bin/keytool" -list -v -keystore "$KEYSTORE" -storetype PKCS12 \
+		-storepass:env YUTBE_KEYSTORE_PASSWORD -alias yutbe 2>/dev/null \
+		| awk -F': ' '/SHA256:/ {print $2; exit}')" || true
+	[[ -n "$fingerprint" ]] || die "The signing key in $SIGNING_DIR cannot be opened with its password"
+	log "Signing key fingerprint (SHA-256): $fingerprint"
+}
+
+# Copies a signing key (yutbe-release.p12 + signing.env) from another folder, keeping any
+# key that is replaced in a backup folder.
+import_signing_key() {
+	local source="${1%/}"
+	protected_exists "$source/yutbe-release.p12" || die "No yutbe-release.p12 in $source"
+	protected_exists "$source/signing.env" || die "No signing.env in $source"
+	local password
+	password="$(read_protected "$source/signing.env" | signing_password_from)" || die "Could not read the password from $source/signing.env"
+	mkdir -p "$SIGNING_DIR"
+	chmod 700 "$SIGNING_DIR"
+	if [[ -e "$KEYSTORE" || -e "$SIGNING_ENV" ]]; then
+		local backup
+		backup="$SIGNING_DIR/replaced-$(date +%Y%m%d-%H%M%S)"
+		mkdir -p "$backup"
+		chmod 700 "$backup"
+		[[ -e "$KEYSTORE" ]] && mv "$KEYSTORE" "$backup/"
+		[[ -e "$SIGNING_ENV" ]] && mv "$SIGNING_ENV" "$backup/"
+		warn "The key that was in use was moved to $backup"
+	fi
+	(umask 077; read_protected "$source/yutbe-release.p12" > "$KEYSTORE")
+	chmod 600 "$KEYSTORE"
+	write_signing_env "$password"
+	log "Imported the signing key from $source"
+}
+
 ensure_signing_key() {
 	mkdir -p "$SIGNING_DIR"
 	chmod 700 "$SIGNING_DIR"
 	if [[ -f "$KEYSTORE" && -f "$SIGNING_ENV" ]]; then
 		log "Using existing signing key $KEYSTORE"
+	elif [[ -f "$KEYSTORE" || -f "$SIGNING_ENV" ]]; then
+		die "Signing key files in $SIGNING_DIR are incomplete. Restore them from your backup, or delete that folder to create a new key (a new key cannot update an installed YuTbe)."
 	else
-		if [[ -f "$KEYSTORE" || -f "$SIGNING_ENV" ]]; then
-			die "Signing key files in $SIGNING_DIR are incomplete. Restore them from your backup, or delete that folder to create a new key (a new key cannot update an installed YuTbe)."
+		# A build started with sudo before this script switched users kept its key under /root.
+		local old="/root/.yutbe/signing"
+		if [[ "$HOME" != "/root" ]] && protected_exists "$old/yutbe-release.p12"; then
+			log "Found the signing key of an earlier sudo build in $old"
+			import_signing_key "$old"
+		else
+			log "Creating a new release signing key in $SIGNING_DIR"
+			local password
+			password="$(random_secret)"
+			YUTBE_KEYSTORE_PASSWORD="$password"
+			export YUTBE_KEYSTORE_PASSWORD
+			(umask 077; "$JDK_DIR/bin/keytool" -genkeypair -noprompt \
+				-keystore "$KEYSTORE" -storetype PKCS12 \
+				-storepass:env YUTBE_KEYSTORE_PASSWORD -keypass:env YUTBE_KEYSTORE_PASSWORD \
+				-alias yutbe -keyalg RSA -keysize 4096 -validity 36500 \
+				-dname "CN=YuTbe, O=YuTbe")
+			chmod 600 "$KEYSTORE"
+			write_signing_env "$password"
+			warn "Back up $SIGNING_DIR. Without it future builds cannot update the installed app."
 		fi
-		log "Creating a new release signing key in $SIGNING_DIR"
-		YUTBE_KEYSTORE_PASSWORD="$(random_secret)"
-		export YUTBE_KEYSTORE_PASSWORD
-		"$JDK_DIR/bin/keytool" -genkeypair -noprompt \
-			-keystore "$KEYSTORE" -storetype PKCS12 \
-			-storepass:env YUTBE_KEYSTORE_PASSWORD -keypass:env YUTBE_KEYSTORE_PASSWORD \
-			-alias yutbe -keyalg RSA -keysize 4096 -validity 36500 \
-			-dname "CN=YuTbe, O=YuTbe"
-		{
-			printf 'YUTBE_KEYSTORE_FILE=%q\n' "$KEYSTORE"
-			printf 'YUTBE_KEYSTORE_PASSWORD=%q\n' "$YUTBE_KEYSTORE_PASSWORD"
-			printf 'YUTBE_KEY_ALIAS=yutbe\n'
-			printf 'YUTBE_KEY_PASSWORD=%q\n' "$YUTBE_KEYSTORE_PASSWORD"
-		} > "$SIGNING_ENV"
-		chmod 600 "$KEYSTORE" "$SIGNING_ENV"
-		warn "Back up $SIGNING_DIR. Without it future builds cannot update the installed app."
 	fi
-	set -a
-	# shellcheck disable=SC1090
-	source "$SIGNING_ENV"
-	set +a
+	load_signing_key
+}
+
+pin_gradle_checksum() {
+	local props="$ROOT/gradle/wrapper/gradle-wrapper.properties"
+	if grep -qE '^distributionSha256Sum=[0-9a-f]{64}$' "$props"; then
+		return
+	fi
+	local url
+	url="$(grep -E '^distributionUrl=' "$props" | head -n 1 | cut -d= -f2- | sed 's#\\:#:#g')"
+	[[ "$url" == https://services.gradle.org/distributions/* ]] || die "Unexpected Gradle distribution URL: $url"
+	local expected
+	expected="$(curl --proto '=https' --tlsv1.2 -fsSL --retry 5 "$url.sha256" | tr -d '[:space:]')"
+	[[ "$expected" =~ ^[0-9a-f]{64}$ ]] || die "Could not obtain the Gradle checksum"
+	grep -v '^distributionSha256Sum=' "$props" > "$props.tmp"
+	printf 'distributionSha256Sum=%s\n' "$expected" >> "$props.tmp"
+	mv "$props.tmp" "$props"
+	log "Pinned the Gradle download to its published checksum"
 }
 
 gradle_heap_mb() {
@@ -304,6 +509,7 @@ collect_apk() {
 	if [[ "$VARIANT" == "debug" ]]; then
 		out="$DIST_DIR/yutbe$version-debug.apk"
 	fi
+	APK_OUT="$out"
 	[[ -f "$out" ]] || die "APK not found at $out"
 	local apksigner
 	apksigner="$(find "$SDK_DIR/build-tools" -maxdepth 2 -name apksigner -type f 2>/dev/null | sort -V | tail -n 1 || true)"
@@ -315,6 +521,133 @@ collect_apk() {
 	fi
 	log "SHA-256: $(sha256_of "$out")"
 	log "Done. Your APK: $out"
+}
+
+APP_ID="com.yutbe.app"
+
+adb_bin() {
+	printf '%s' "$SDK_DIR/platform-tools/adb"
+}
+
+device_ready() {
+	[[ -x "$(adb_bin)" ]] && [[ "$("$(adb_bin)" get-state 2>/dev/null | tr -d '\r')" == "device" ]]
+}
+
+apksigner_bin() {
+	find "$SDK_DIR/build-tools" -maxdepth 2 -name apksigner -type f 2>/dev/null | sort -V | tail -n 1 || true
+}
+
+ensure_build_tools() {
+	[[ -n "$(apksigner_bin)" ]] && return 0
+	local sdkmanager="$SDK_DIR/cmdline-tools/latest/bin/sdkmanager"
+	local package
+	package="$("$sdkmanager" --sdk_root="$SDK_DIR" --list 2>/dev/null | awk '{print $1}' \
+		| grep -E '^build-tools;[0-9]+\.[0-9]+\.[0-9]+$' | sort -t';' -k2 -V | tail -n 1 || true)"
+	[[ -n "$package" ]] || die "Could not find Android build tools to read APK signatures"
+	log "Installing $package"
+	"$sdkmanager" --sdk_root="$SDK_DIR" --install "$package" >/dev/null
+}
+
+# SHA-256 of the certificate an APK is signed with, as lowercase hex.
+apk_digest() {
+	"$(apksigner_bin)" verify --print-certs "$1" 2>/dev/null \
+		| awk -F': ' '/Signer #1 certificate SHA-256 digest/ {print $2; exit}' | tr 'A-F' 'a-f'
+}
+
+installed_digest() {
+	local path
+	path="$("$(adb_bin)" shell pm path "$APP_ID" 2>/dev/null | tr -d '\r' | sed -n 's/^package://p' | grep 'base\.apk$' | head -n 1 || true)"
+	[[ -n "$path" ]] || return 1
+	"$(adb_bin)" pull "$path" "$TMP_DIR/installed.apk" >/dev/null 2>&1 || return 1
+	apk_digest "$TMP_DIR/installed.apk"
+}
+
+# SHA-256 of the certificate in a signing folder, as lowercase hex.
+key_digest() {
+	local dir="$1" password
+	password="$(read_protected "$dir/signing.env" | signing_password_from)" || return 1
+	local copy="$TMP_DIR/candidate.p12"
+	(umask 077; read_protected "$dir/yutbe-release.p12" > "$copy") || return 1
+	YUTBE_CANDIDATE_PASSWORD="$password" "$JDK_DIR/bin/keytool" -list -v -keystore "$copy" -storetype PKCS12 \
+		-storepass:env YUTBE_CANDIDATE_PASSWORD -alias yutbe 2>/dev/null \
+		| awk -F': ' '/SHA256:/ {print $2; exit}' | tr -d ':' | tr 'A-F' 'a-f'
+	rm -f "$copy"
+}
+
+key_folders() {
+	local base
+	for base in "$SIGNING_DIR" "/root/.yutbe/signing"; do
+		if [[ -d "$base" ]]; then
+			find "$base" -maxdepth 2 -name yutbe-release.p12 -exec dirname {} \; 2>/dev/null || true
+		elif [[ "$base" == /root/* && "$(id -u)" -ne 0 ]] && command -v sudo >/dev/null 2>&1; then
+			sudo find "$base" -maxdepth 2 -name yutbe-release.p12 -exec dirname {} \; 2>/dev/null || true
+		fi
+	done
+}
+
+# Makes sure the build is signed with the same key as the YuTbe already on the phone.
+match_installed_key() {
+	if ! device_ready; then
+		warn "No phone with USB debugging found yet; the APK will be built, the install step needs the phone"
+		return
+	fi
+	ensure_build_tools
+	local wanted
+	wanted="$(installed_digest || true)"
+	if [[ -z "$wanted" ]]; then
+		log "YuTbe is not installed on the phone yet"
+		return
+	fi
+	log "The phone's YuTbe is signed with $wanted"
+	local current
+	current="$(key_digest "$SIGNING_DIR" || true)"
+	if [[ "$current" == "$wanted" ]]; then
+		log "The current signing key matches the installed app"
+		return
+	fi
+	log "Looking for the matching signing key on this computer (your password may be needed)"
+	local dir
+	while IFS= read -r dir; do
+		[[ -n "$dir" && "$dir" != "$SIGNING_DIR" ]] || continue
+		if [[ "$(key_digest "$dir" || true)" == "$wanted" ]]; then
+			log "Found it in $dir"
+			import_signing_key "$dir"
+			load_signing_key
+			return
+		fi
+	done < <(key_folders)
+	if [[ "$REINSTALL" -eq 1 ]]; then
+		warn "The key used for the installed YuTbe no longer exists; it will be uninstalled first"
+	else
+		warn "The key used for the installed YuTbe is not on this computer. The new APK cannot update it; use --reinstall to replace it (settings, history and login on the phone are lost)"
+	fi
+}
+
+install_apk() {
+	device_ready || die "No phone found. Turn on USB debugging, connect the phone, accept the prompt on it and run again"
+	local output
+	log "Installing $APK_OUT"
+	output="$("$(adb_bin)" install -r "$APK_OUT" 2>&1 || true)"
+	if grep -q '^Success' <<< "$output"; then
+		log "Installed on the phone"
+		return
+	fi
+	printf '%s\n' "$output"
+	if grep -q 'INSTALL_FAILED_UPDATE_INCOMPATIBLE' <<< "$output"; then
+		if [[ "$REINSTALL" -eq 1 ]]; then
+			warn "Uninstalling the old YuTbe (signed with a different key)"
+			"$(adb_bin)" uninstall "$APP_ID" >/dev/null 2>&1 || true
+			output="$("$(adb_bin)" install "$APK_OUT" 2>&1 || true)"
+			grep -q '^Success' <<< "$output" || die "Installation failed: $output"
+			log "Installed on the phone"
+			return
+		fi
+		die "The phone's YuTbe was signed with a different key. Run ./BUILD.sh --reinstall to replace it (its settings, history and login are lost)"
+	fi
+	if grep -q 'INSTALL_FAILED_VERSION_DOWNGRADE' <<< "$output"; then
+		die "The phone has a newer YuTbe than this build. Raise appVersionCode in app/build.gradle.kts"
+	fi
+	die "Installation failed"
 }
 
 main() {
@@ -329,11 +662,21 @@ main() {
 	export ANDROID_SDK_ROOT="$SDK_DIR"
 	install_android_sdk
 	write_local_properties
+	if [[ -n "$IMPORT_KEY" ]]; then
+		import_signing_key "$IMPORT_KEY"
+	fi
 	if [[ "$VARIANT" == "release" ]]; then
 		ensure_signing_key
+		if [[ "$INSTALL" -eq 1 ]]; then
+			match_installed_key
+		fi
 	fi
+	pin_gradle_checksum
 	run_gradle
 	collect_apk
+	if [[ "$INSTALL" -eq 1 ]]; then
+		install_apk
+	fi
 }
 
 main

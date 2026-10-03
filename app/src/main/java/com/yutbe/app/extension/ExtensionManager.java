@@ -66,8 +66,37 @@ public class ExtensionManager {
 		return mmkv.decodeBool(prefKey(key), Boolean.TRUE.equals(Constant.DEFAULT_PREFERENCES.getOrDefault(key, false)));
 	}
 
+	public int getInt(String key) {
+		int fallback = Constant.DEFAULT_INT_PREFERENCES.getOrDefault(key, 0);
+		return mmkv.decodeInt(prefKey(key), fallback);
+	}
+
+	public void setInt(String key, int value) {
+		String pref = prefKey(key);
+		boolean changed = !mmkv.contains(pref) || mmkv.decodeInt(pref, value + 1) != value;
+		mmkv.encode(pref, value);
+		if (changed) {
+			bumpVersion();
+		}
+	}
+
+	/**
+	 * Tells every page that content filter data (watched videos, blocked channels) changed.
+	 */
+	public void notifyChanged() {
+		bumpVersion();
+	}
+
 	public void resetToDefault() {
 		boolean changed = false;
+		for (Map.Entry<String, Integer> entry : Constant.DEFAULT_INT_PREFERENCES.entrySet()) {
+			String key = prefKey(entry.getKey());
+			int value = entry.getValue();
+			if (!mmkv.contains(key) || mmkv.decodeInt(key, value) != value) {
+				changed = true;
+			}
+			mmkv.encode(key, value);
+		}
 		for (Map.Entry<String, Boolean> entry : Constant.DEFAULT_PREFERENCES.entrySet()) {
 			String key = prefKey(entry.getKey());
 			boolean value = entry.getValue();

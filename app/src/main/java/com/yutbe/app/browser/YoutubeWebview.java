@@ -29,6 +29,7 @@ import androidx.media3.common.util.UnstableApi;
 
 import com.yutbe.app.Constant;
 import com.yutbe.app.R;
+import com.yutbe.app.filter.ContentFilters;
 import com.yutbe.app.cache.WebViewCachePolicy;
 import com.yutbe.app.extension.ExtensionManager;
 import com.yutbe.app.extractor.YoutubeExtractor;
@@ -132,6 +133,8 @@ public class YoutubeWebview extends WebView {
 	private ExtensionManager extensionManager;
 	private TabManager tabManager;
 	private QueueRepository queueRepository;
+	@Nullable
+	private ContentFilters contentFilters;
 	@Nullable
 	private LoadingProgressBar progressBar;
 	@Nullable
@@ -243,6 +246,20 @@ public class YoutubeWebview extends WebView {
 		this.tabManager = tabManager;
 	}
 
+	/**
+	 * The native bridge only answers while the top-level page is a YouTube page served over
+	 * https, so other sites that end up in this WebView cannot use it.
+	 */
+	private volatile boolean trustedPage;
+
+	public boolean isTrustedPage() {
+		return trustedPage;
+	}
+
+	public void setContentFilters(@NonNull ContentFilters contentFilters) {
+		this.contentFilters = contentFilters;
+	}
+
 	public void setQueueRepository(@NonNull QueueRepository queueRepository) {
 		this.queueRepository = queueRepository;
 	}
@@ -281,6 +298,27 @@ public class YoutubeWebview extends WebView {
 		Log.w("YoutubeWebview", "Blocked attempt to load unauthorized URL: " + loadUrl);
 	}
 
+	/**
+	 * Strips everything from a page-supplied intent: URI that could reach this app's private
+	 * components or grant access to its files, the same way browsers handle intent: links.
+	 */
+	@NonNull
+	private Intent safeIntent(@NonNull Intent intent) {
+		intent.addCategory(Intent.CATEGORY_BROWSABLE);
+		intent.setComponent(null);
+		intent.setSelector(null);
+		intent.setClipData(null);
+		intent.removeFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
+						| Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+						| Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+						| Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
+		if (getContext().getPackageName().equals(intent.getPackage())) {
+			intent.setPackage(null);
+		}
+		intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+		return intent;
+	}
+
 	private void openExternal(@NonNull Uri uri) {
 		try {
 			getContext().startActivity(new Intent(Intent.ACTION_VIEW, uri));
@@ -306,6 +344,10 @@ public class YoutubeWebview extends WebView {
 
 		WebSettings settings = getSettings();
 		settings.setJavaScriptEnabled(true);
+		settings.setAllowFileAccess(false);
+		settings.setAllowContentAccess(false);
+		settings.setGeolocationEnabled(false);
+		settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
 		settings.setDatabaseEnabled(true);
 		settings.setDomStorageEnabled(true);
 		settings.setCacheMode(WebSettings.LOAD_DEFAULT);
@@ -317,7 +359,7 @@ public class YoutubeWebview extends WebView {
 		settings.setMediaPlaybackRequiresUserGesture(false);
 		settings.setUserAgentString("Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36");
 
-		JavascriptInterface jsInterface = new JavascriptInterface(this, youtubeExtractor, player, extensionManager, tabManager, queueRepository);
+		JavascriptInterface jsInterface = new JavascriptInterface(this, youtubeExtractor, player, extensionManager, tabManager, queueRepository, Objects.requireNonNull(contentFilters));
 		addJavascriptInterface(jsInterface, "yutbe");
 		setTag(jsInterface);
 
@@ -329,7 +371,7 @@ public class YoutubeWebview extends WebView {
 				if (Objects.equals(uri.getScheme(), "intent")) {
 					// open in other app
 					try {
-						Intent intent = Intent.parseUri(uri.toString(), Intent.URI_INTENT_SCHEME);
+						Intent intent = safeIntent(Intent.parseUri(uri.toString(), Intent.URI_INTENT_SCHEME));
 						getContext().startActivity(intent);
 					} catch (ActivityNotFoundException | URISyntaxException e) {
 						ToastUtils.show(getContext(), R.string.application_not_found);
@@ -351,6 +393,7 @@ public class YoutubeWebview extends WebView {
 			@Override
 			public void doUpdateVisitedHistory(@NonNull WebView view, @NonNull String url, boolean isReload) {
 				super.doUpdateVisitedHistory(view, url, isReload);
+				trustedPage = UrlUtils.isTrustedPageUrl(url);
 				evaluateJavascript("window.dispatchEvent(new Event('doUpdateVisitedHistory'));", null);
 				if (updateVisitedHistory != null) updateVisitedHistory.accept(url);
 				post(YoutubeWebview.this::refreshPoTokenContext);
@@ -359,6 +402,7 @@ public class YoutubeWebview extends WebView {
 			@Override
 			public void onPageStarted(@NonNull WebView view, @NonNull String url, @Nullable Bitmap favicon) {
 				super.onPageStarted(view, url, favicon);
+				trustedPage = UrlUtils.isTrustedPageUrl(url);
 				frame.epoch.incrementAndGet();
 				frame.finished = false;
 				frame.url = url;

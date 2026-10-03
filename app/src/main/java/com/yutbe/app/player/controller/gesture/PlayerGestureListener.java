@@ -77,7 +77,12 @@ public class PlayerGestureListener extends GestureDetector.SimpleOnGestureListen
 		return controller.getExtensionManager().isEnabled(key);
 	}
 
+	private boolean minimizeEnabled() {
+		return controller.getExtensionManager().isEnabled(Constant.GESTURE_SWIPE_DOWN_MINIMIZE);
+	}
+
 	private boolean hasAnyEnabled() {
+		if (minimizeEnabled()) return true;
 		for (Gesture gesture : Gesture.values()) {
 			if (enabled(gesture)) return true;
 		}
@@ -87,6 +92,9 @@ public class PlayerGestureListener extends GestureDetector.SimpleOnGestureListen
 	@NonNull
 	private GestureMode verticalMode(float x, float width) {
 		if (width <= 0f) return GestureMode.NONE;
+		// Swipe down to minimize uses vertical swipes over the whole player, so brightness and
+		// volume swipes are turned off while it is enabled.
+		if (minimizeEnabled()) return GestureMode.MINIMIZE;
 		if (x < width * 0.35f) {
 			return enabled(Gesture.BRIGHTNESS) ? GestureMode.BRIGHTNESS : GestureMode.NONE;
 		}
@@ -210,6 +218,9 @@ public class PlayerGestureListener extends GestureDetector.SimpleOnGestureListen
 			case FULLSCREEN:
 				handleCenterVerticalGesture(e1, e2);
 				break;
+			case MINIMIZE:
+				handleMinimizeGesture(e1, e2);
+				break;
 			case SEEK:
 				adjustSeek(e1, e2);
 				break;
@@ -267,6 +278,27 @@ public class PlayerGestureListener extends GestureDetector.SimpleOnGestureListen
 		}
 	}
 
+	private void handleMinimizeGesture(@NonNull MotionEvent e1, @NonNull MotionEvent e2) {
+		if (swipeTriggered) return;
+		float dy = e2.getY() - e1.getY();
+		float threshold = playerView.getHeight() * 0.12f;
+		if (Math.abs(dy) < threshold) return;
+		if (controller.isFullscreen()) {
+			if (dy > 0) {
+				swipeTriggered = true;
+				controller.exitFullscreen();
+			}
+			return;
+		}
+		if (dy > 0) {
+			swipeTriggered = true;
+			controller.minimizeToBar();
+		} else if (enabled(Gesture.FULLSCREEN)) {
+			swipeTriggered = true;
+			controller.enterFullscreen();
+		}
+	}
+
 	@Override
 	public void onLongPress(@NonNull MotionEvent e) {
 		if (!enabled(Gesture.LONG_PRESS) || !engine.isPlaying()) return;
@@ -304,7 +336,8 @@ public class PlayerGestureListener extends GestureDetector.SimpleOnGestureListen
 		BRIGHTNESS,
 		VOLUME,
 		FULLSCREEN,
-		SEEK
+		SEEK,
+		MINIMIZE
 	}
 
 	private enum DoubleTapAction {
