@@ -1,34 +1,34 @@
 YuTbe
-============
 
-YuTbe is a continuation of the discontinued [Litube](https://github.com/HydeYYHH/litube) project. Many thanks to the original author(s).
+YuTbe is an advanced WebView wrapper for YouTube with a native player, ad-free playback, SponsorBlock, mini-player, picture-in-picture, background play, a local queue with YouTube-style autoplay, and a built-in downloader. Source code: https://github.com/techniixdotcom/yutbe
 
-by: cuteLiLi / techniix / QuacK
+Build
 
-YuTbe is an advanced webview wrapper for YouTube.
+Requirements: Linux (x86_64 or arm64), macOS, or Windows through WSL2; about 10 GB of free disk space; 4 GB of RAM or more; an internet connection.
 
-## Features
-* [x] **Ad-free playback**
-* [x] **Sponsor-block**
-* [x] **Bottom-bar mini-player**
-* [x] **Local queue support with auto-play next**
-* [x] **Background play support**
-* [x] **Built-in video and playlist downloader**
-* [x] **Live stream chat support, etc**
+    chmod +x BUILD.sh
+    ./BUILD.sh
 
+The script downloads and checksum-verifies Eclipse Temurin JDK 21 and the Android SDK into ~/.yutbe, accepts the SDK licenses, creates a private release signing key the first time, builds the extractor from ./newpipe-extractor together with the app, verifies the APK signature and writes the APK to ./dist as yutbe<version>.apk, for example dist/yutbe1.0.1.apk. A full log is written to build.log.
 
-## Working On ...
-* [x] **Watched Videos are greyed out**
-* [x] **Long press to marked as Watched or Block**
+Options: ./BUILD.sh --clean rebuilds from scratch, ./BUILD.sh --debug builds a debug APK.
 
-EXPERIMENTAL (don't expect it to work)
-* [x] **Sync watch timestamp/history between devices toggle on/off**
-* [x] **Sync watch timestamp/history to youtube toggle on/off**
+Back up ~/.yutbe/signing. Android only installs updates that are signed with the same key.
 
-## Screenshots
+Install
 
-*Coming soon.*
+Copy dist/yutbe1.0.1.apk to the phone and open it (allow installing from unknown sources), or with USB debugging enabled:
 
-## Contributing
+    ~/.yutbe/android-sdk/platform-tools/adb install -r dist/yutbe1.0.1.apk
 
-If you encounter a bug, please check the GitHub repository to see if an issue has already been reported. If not, feel free to open a new one. Code contributions and pull requests are always welcome!
+Notes
+
+Playback uses NewPipe Extractor's visionOS client, which YouTube does not throttle with proof-of-origin tokens. The extractor sources are the NewPipe Extractor dev branch at commit eb53b79, vendored in ./newpipe-extractor.
+
+Releases
+
+The in-app update check reads the latest release of https://github.com/techniixdotcom/yutbe. Publish each build as a GitHub release whose tag is the version name, for example v1.0.1, and raise appVersionName and appVersionCode at the top of app/build.gradle.kts before every new build. The APK file name follows appVersionName automatically.
+
+License
+
+GPL-3.0. YuTbe is derived from Litube by HydeYYHH (GPL-3.0); this notice is required by the license. NewPipe Extractor is GPL-3.0-or-later.
