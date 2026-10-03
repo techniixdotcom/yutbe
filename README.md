@@ -23,8 +23,8 @@ YuTbe is an advanced webview wrapper for YouTube.
 making this as customizable as possible but keeping but staying true to our interpretation of the original.
 
 ## Priority fixes:
-* [x] ** update dependancies with known CVEs **
-* [x] ** fix some security issues **
+* [x] ** update dependancies with known CVEs ** DONE !!
+* [x] ** fix some security issues ** DONE !!
 
 ## toggle on/off:
 * [x] ** grey out watched videos, with user chosen watched % **
