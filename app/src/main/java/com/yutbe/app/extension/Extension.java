@@ -102,14 +102,17 @@ public record Extension(String key, int title, int summary, int icon, List<Exten
 	}
 
 	/**
-	 * True when this item or one of its children controls one of the given keys.
+	 * True when every setting under this item (or the item itself) is one of the given keys,
+	 * so a page that also holds other settings is never matched.
 	 */
-	public boolean controlsAny(@NonNull List<String> keys) {
-		if (key != null && keys.contains(key)) return true;
-		for (Extension child : children) {
-			if (child.controlsAny(keys)) return true;
+	public boolean controlsOnly(@NonNull List<String> keys) {
+		if (children.isEmpty()) {
+			return key != null && keys.contains(key);
 		}
-		return false;
+		for (Extension child : children) {
+			if (!child.controlsOnly(keys)) return false;
+		}
+		return true;
 	}
 
 	public boolean isPercent() {

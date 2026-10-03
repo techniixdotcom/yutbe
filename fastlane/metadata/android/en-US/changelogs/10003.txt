@@ -1,0 +1,3 @@
+Gesture settings stay reachable while Swipe down to minimize is on; only brightness and volume are greyed out.
+Hardened security: no app data in backups, safer handling of links from web pages and other apps, the in-page bridge only works on YouTube pages.
+Updated Gradle and AndroidX libraries.

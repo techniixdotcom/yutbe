@@ -229,7 +229,7 @@ public class ExtensionActivity extends AppCompatActivity {
 
 	private boolean isLockedByMinimize(@NonNull Extension item) {
 		return manager.isEnabled(Constant.GESTURE_SWIPE_DOWN_MINIMIZE)
-						&& item.controlsAny(Constant.MINIMIZE_DISABLED_KEYS);
+						&& item.controlsOnly(Constant.MINIMIZE_DISABLED_KEYS);
 	}
 
 	private static void setLocked(@NonNull View itemView, boolean locked) {
