@@ -27,8 +27,8 @@ making this as customizable as possible but keeping but staying true to our inte
 * [x] ** fix some security issues ** DONE !!
 
 ## toggle on/off:
-* [x] ** grey out watched videos, with user chosen watched % **
-* [x] ** Swipe down to minimize the playing video **
+* [x] ** grey out watched videos, with user chosen watched % ** next release
+* [x] ** Swipe down to minimize the playing video ** next release
 * [x] ** sync to other devices and youtube.com **
 
 
