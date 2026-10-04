@@ -27,6 +27,7 @@ YuTbe is an advanced webview wrapper for YouTube.
 
 * [x] **All Translations**
 * [x] **Cache size improvements**
+* [x] **In app Update**
 
 ## toggle on/off:
 * [x] **subscriptions visibility on/off**
