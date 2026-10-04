@@ -12,6 +12,7 @@ import com.yutbe.app.extension.Constant;
 import com.yutbe.app.extension.ExtensionManager;
 import com.yutbe.app.filter.BlockedChannel;
 import com.yutbe.app.filter.ContentFilters;
+import com.yutbe.app.history.WatchHistory;
 import com.yutbe.app.player.queue.QueueItem;
 import com.yutbe.app.player.queue.QueueRepository;
 import com.yutbe.app.util.UrlUtils;
@@ -51,12 +52,16 @@ public final class SettingsBackup {
 	private final QueueRepository queue;
 	@NonNull
 	private final Gson gson;
+	@NonNull
+	private final WatchHistory watchLog;
 
 	@Inject
 	public SettingsBackup(@NonNull ExtensionManager extensions,
 	                      @NonNull ContentFilters filters,
 	                      @NonNull QueueRepository queue,
-	                      @NonNull Gson gson) {
+	                      @NonNull Gson gson,
+	                      @NonNull WatchHistory watchLog) {
+		this.watchLog = watchLog;
 		this.extensions = extensions;
 		this.filters = filters;
 		this.queue = queue;
@@ -98,6 +103,7 @@ public final class SettingsBackup {
 		}
 		root.add("watchHistory", history);
 		root.add("queue", gson.toJsonTree(queue.getItems()));
+		root.add("watchLog", gson.toJsonTree(watchLog.entries()));
 
 		out.write(gson.toJson(root).getBytes(StandardCharsets.UTF_8));
 		out.flush();
@@ -162,7 +168,18 @@ public final class SettingsBackup {
 			items.add(new QueueItem(videoId, videoUrl, clip(title, 500), clip(string(item.get("author")), 200), thumbnail));
 		}
 		int queued = queue.addMissing(items);
-		return new Result(settings, channels, videos, queued);
+
+		List<WatchHistory.Entry> log = new ArrayList<>();
+		for (JsonElement element : array(root.get("watchLog"))) {
+			if (log.size() >= MAX_HISTORY) break;
+			JsonObject item = object(element);
+			String videoId = string(item.get("videoId"));
+			if (!ContentFilters.isVideoId(videoId)) continue;
+			log.add(new WatchHistory.Entry(videoId, string(item.get("title")), string(item.get("author")),
+							string(item.get("thumbnailUrl")), number(item.get("watchedAt"))));
+		}
+		int logged = watchLog.merge(log);
+		return new Result(settings, channels, videos + logged, queued);
 	}
 
 	private int restoreSettings(@NonNull JsonObject settings) {

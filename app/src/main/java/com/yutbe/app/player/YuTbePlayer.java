@@ -14,7 +14,6 @@ import androidx.media3.ui.DefaultTimeBar;
 import com.yutbe.app.PlaybackService;
 import com.yutbe.app.R;
 import com.yutbe.app.extractor.ExtractionSession;
-import com.yutbe.app.extractor.PlaybackMode;
 import com.yutbe.app.extractor.PlaybackDetails;
 import com.yutbe.app.extractor.PlaybackPlan;
 import com.yutbe.app.extractor.PlaybackPlanner;
@@ -324,12 +323,6 @@ public class YuTbePlayer {
 		String lang = kv.decodeString(KEY_LAST_AUDIO_LANG, "und");
 		String preferredQuality = prefs.getPreferredQuality();
 		PlaybackPlan plan = PlaybackPlanner.plan(details.deliveries(), preferredQuality, lang);
-		if (prefs.shouldUseAdaptiveMuxedFallback(videoId) && plan.getMode() == PlaybackMode.ADAPTIVE) {
-			PlaybackPlan fallback = PlaybackPlanner.muxedFallbackPlan(details.deliveries(), preferredQuality);
-			if (fallback != null) {
-				plan = fallback;
-			}
-		}
 		return new PlaybackDetails(
 						details.video(),
 						details.catalog(),
@@ -569,10 +562,6 @@ public class YuTbePlayer {
 		}
 		playerView.exitInAppMiniPlayer();
 		controller.exitMiniPlayer();
-	}
-
-	public boolean isInMiniBar() {
-		return inMiniPlayer && miniBarMode;
 	}
 
 	@NonNull

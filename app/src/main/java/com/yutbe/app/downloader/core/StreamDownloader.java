@@ -1,6 +1,5 @@
 package com.yutbe.app.downloader.core;
 
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 

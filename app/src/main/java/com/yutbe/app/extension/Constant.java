@@ -20,6 +20,7 @@ public final class Constant {
 	public static final String ENABLE_DISPLAY_DISLIKES = "enable_display_dislikes";
 	public static final String ENABLE_HIDE_SHORTS = "enable_hide_shorts";
 	public static final String ENABLE_GREY_WATCHED = "enable_grey_watched";
+	public static final String ENABLE_HIDE_SUBSCRIPTIONS = "enable_hide_subscriptions";
 	public static final String WATCHED_THRESHOLD_PERCENT = "watched_threshold_percent";
 	public static final String GESTURE_SWIPE_DOWN_MINIMIZE = "gesture_swipe_down_minimize";
 	public static final String ACTION_BLOCKED_CHANNELS = "action_blocked_channels";
@@ -45,7 +46,9 @@ public final class Constant {
 	public static final List<String> CHOICE_KEYS = List.of(QUALITY_WIFI, QUALITY_MOBILE);
 	public static final String ACTION_SLEEP_TIMER = "action_sleep_timer";
 	public static final String ACTION_QUEUE = "action_queue";
-	public static final List<String> ACTION_KEYS = List.of(ACTION_BLOCKED_CHANNELS, ACTION_SLEEP_TIMER, ACTION_QUEUE);
+	public static final String ACTION_WATCH_HISTORY = "action_watch_history";
+	public static final List<String> ACTION_KEYS = List.of(ACTION_BLOCKED_CHANNELS, ACTION_SLEEP_TIMER, ACTION_QUEUE,
+					ACTION_WATCH_HISTORY);
 	/**
 	 * Gestures that are turned off while swipe down to minimize is on.
 	 */
@@ -92,6 +95,7 @@ public final class Constant {
 					Map.entry(ENABLE_DISPLAY_DISLIKES, true),
 					Map.entry(ENABLE_HIDE_SHORTS, false),
 					Map.entry(ENABLE_GREY_WATCHED, false),
+					Map.entry(ENABLE_HIDE_SUBSCRIPTIONS, false),
 					Map.entry(GESTURE_SWIPE_DOWN_MINIMIZE, false),
 					Map.entry(SKIP_SPONSORS, true),
 					Map.entry(SKIP_SELF_PROMO, true),

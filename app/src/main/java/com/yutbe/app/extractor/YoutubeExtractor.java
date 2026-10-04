@@ -285,7 +285,6 @@ public final class YoutubeExtractor {
 						copyList(orEmpty(streamInfo.getSubtitles())));
 		ensurePlayableSources(videoId, details.deliveries(), details.plan());
 		cache.putPlaybackDetails(videoId, details);
-		cache.putVideoDetails(videoId, details.video());
 		cache.putRelatedVideos(videoId, collectRelated(streamInfo, videoId));
 		return copy(details, PlaybackDetails.class);
 	}

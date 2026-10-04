@@ -370,8 +370,31 @@
     return result;
   };
 
+  // With "Show dislikes" off the dislike button is hidden completely.
+  const HIDE_CLASS = "yutbe-hide-dislike";
+  const HIDE_STYLE_ID = "yutbe-hide-dislike-style";
+
+  function applyButtonVisibility(show) {
+    if (!document.getElementById(HIDE_STYLE_ID)) {
+      const target = document.head || document.documentElement;
+      if (target) {
+        const style = document.createElement("style");
+        style.id = HIDE_STYLE_ID;
+        style.textContent = [
+          "dislike-button-view-model",
+          "#segmented-dislike-button",
+          ".segmented-dislike-button",
+          "ytm-segmented-like-dislike-button-renderer .dislike-button",
+        ].map((selector) => "html." + HIDE_CLASS + " " + selector).join(",") + "{display:none!important;}";
+        target.appendChild(style);
+      }
+    }
+    document.documentElement.classList.toggle(HIDE_CLASS, !show);
+  }
+
   function syncPreferences() {
     const next = readEnabled();
+    applyButtonVisibility(next);
     if (enabled === next) {
       if (enabled) scheduleInitialize();
       return;

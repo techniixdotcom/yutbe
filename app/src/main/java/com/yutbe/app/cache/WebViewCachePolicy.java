@@ -75,7 +75,9 @@ public final class WebViewCachePolicy {
 		int dot = filename.lastIndexOf('.');
 		if (dot < 0 || dot == filename.length() - 1) return false;
 		String extension = filename.substring(dot + 1).toLowerCase(Locale.US);
-		return Set.of("js", "ico", "css", "png", "jpg", "jpeg", "gif", "bmp", "ttf", "woff", "woff2", "otf", "eot", "svg", "webp").contains(extension);
+		// Only the site's own code, styles, fonts and icons are kept for a long time. Thumbnails
+		// (jpg/webp/png) change constantly and would fill the cache within minutes.
+		return Set.of("js", "ico", "css", "ttf", "woff", "woff2", "otf", "eot", "svg").contains(extension);
 	}
 
 	@NonNull

@@ -129,6 +129,7 @@ public class TabManager {
 			this.tab = next;
 			tabs.offer(next);
 			ft.add(R.id.fragment_container, next, targetTag);
+			trimTabs(ft, next);
 		} else {
 			YoutubeFragment home = null;
 			YoutubeFragment nav = null;
@@ -379,6 +380,27 @@ public class TabManager {
 		return true;
 	}
 
+	/**
+	 * Every page is its own WebView, which costs tens of MB. Only the most recent pages are kept;
+	 * the oldest ones (never Home or the video page) are closed.
+	 */
+	private void trimTabs(@NonNull FragmentTransaction ft, @NonNull YoutubeFragment keep) {
+		while (tabs.size() > MAX_TABS) {
+			YoutubeFragment oldest = null;
+			for (var t : tabs) {
+				String tag = t.getTabTag();
+				if (t == keep || t == suspendedTab || Constant.PAGE_HOME.equals(tag) || Constant.PAGE_WATCH.equals(tag)) {
+					continue;
+				}
+				oldest = t;
+				break;
+			}
+			if (oldest == null) return;
+			tabs.remove(oldest);
+			ft.remove(oldest);
+		}
+	}
+
 	private void suspendTab(@NonNull FragmentTransaction ft) {
 		YoutubeFragment tab = this.tab;
 		if (tab == null) return;
@@ -398,6 +420,8 @@ public class TabManager {
 	private boolean miniPlayerAllowed() {
 		return minimizeToBar() || extensionManager.isEnabled(Constant.ENABLE_IN_APP_MINI_PLAYER);
 	}
+
+	private static final int MAX_TABS = 6;
 
 	private void enterMiniPlayer() {
 		enterMiniPlayer(minimizeToBar());

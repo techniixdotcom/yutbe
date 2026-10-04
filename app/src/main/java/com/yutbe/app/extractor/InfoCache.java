@@ -20,7 +20,6 @@ import javax.inject.Singleton;
 @Singleton
 public final class InfoCache {
 	private static final String STREAM_KEY = "extractor:stream:";
-	private static final String INFO_KEY = "extractor:info:";
 	private static final String RELATED_KEY = "extractor:related2:";
 
 	@NonNull
@@ -58,16 +57,6 @@ public final class InfoCache {
 	public void putRelatedVideos(@NonNull String videoId,
 	                             @NonNull List<RelatedVideo> items) {
 		write(RELATED_KEY + videoId, items.toArray(new RelatedVideo[0]), TimeUnit.HOURS.toMillis(6));
-	}
-
-	@Nullable
-	public VideoDetails getVideoDetails(@NonNull String videoId) {
-		return read(INFO_KEY + videoId, VideoDetails.class);
-	}
-
-	public void putVideoDetails(@NonNull String videoId,
-	                            @NonNull VideoDetails details) {
-		write(INFO_KEY + videoId, details, TimeUnit.HOURS.toMillis(6));
 	}
 
 	@Nullable

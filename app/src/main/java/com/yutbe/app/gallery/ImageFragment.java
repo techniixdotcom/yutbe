@@ -58,7 +58,7 @@ public class ImageFragment extends Fragment {
 
 		if (url == null || url.isEmpty()) {
 			ImageUtils.showThumb(photoView);
-			ToastUtils.show(requireContext(), "Image URL is empty");
+			ToastUtils.show(requireContext(), R.string.image_url_empty);
 			return root;
 		}
 

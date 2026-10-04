@@ -132,7 +132,8 @@
                 ko: { download: '다운로드', addToQueue: '대기열에 추가', playNext: '다음에 재생', openWith: '다른 앱으로 열기', extension: '플러그인', chat: '채팅', about: '정보' },
                 fr: { download: 'Télécharger', addToQueue: 'Ajouter à la file', playNext: 'Lire ensuite', openWith: 'Ouvrir avec', extension: 'Extension', chat: 'Chat', about: 'À propos' },
                 ru: { download: 'Скачать', addToQueue: 'Добавить в очередь', playNext: 'Воспроизвести следующим', openWith: 'Открыть с помощью', extension: 'Расширение', chat: 'Чат', about: 'О программе' },
-                tr: { download: 'İndir', addToQueue: 'Kuyruğa ekle', playNext: 'Sıradaki olarak oynat', openWith: 'Birlikte aç', extension: 'Uzantı', chat: 'Sohbet', about: 'Hakkında' }
+                tr: { download: 'İndir', addToQueue: 'Kuyruğa ekle', playNext: 'Sıradaki olarak oynat', openWith: 'Birlikte aç', extension: 'Uzantı', chat: 'Sohbet', about: 'Hakkında' },
+                es: { download: 'Descargar', addToQueue: 'Añadir a la cola', playNext: 'Reproducir a continuación', openWith: 'Abrir con', extension: 'Extensiones', chat: 'Chat', about: 'Acerca de' }
             }),
 
             get(key) {

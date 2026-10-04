@@ -1,9 +1,12 @@
 package com.yutbe.app.player.engine;
 
+import android.net.Uri;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.datasource.DataSource;
+import androidx.media3.datasource.DataSpec;
 import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.datasource.FileDataSource;
 import androidx.media3.datasource.cache.CacheDataSink;
@@ -126,6 +129,27 @@ final class PlayerDataSource {
 														.setCache(cache)
 														.setFragmentSize(2L * 1024L * 1024L))
 						.setCacheReadDataSourceFactory(new FileDataSource.Factory())
+						.setCacheKeyFactory(PlayerDataSource::cacheKey)
 						.setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR);
+	}
+
+	/**
+	 * Stream URLs change with every extraction, so they are cached under the parts that stay the
+	 * same (video, format and size). Otherwise every replay would be stored again.
+	 */
+	@NonNull
+	static String cacheKey(@NonNull DataSpec spec) {
+		if (spec.key != null) return spec.key;
+		Uri uri = spec.uri;
+		String host = uri.getHost();
+		if (host != null && host.endsWith(".googlevideo.com") && uri.isHierarchical()) {
+			String id = uri.getQueryParameter("id");
+			String itag = uri.getQueryParameter("itag");
+			if (id != null && itag != null) {
+				String clen = uri.getQueryParameter("clen");
+				return "gv:" + id + ":" + itag + ":" + (clen == null ? "" : clen);
+			}
+		}
+		return uri.toString();
 	}
 }

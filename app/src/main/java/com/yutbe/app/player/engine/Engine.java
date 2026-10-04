@@ -41,6 +41,7 @@ import com.yutbe.app.extractor.StreamCatalog;
 import com.yutbe.app.extractor.VideoDetails;
 import com.yutbe.app.extractor.YoutubeExtractor;
 import com.yutbe.app.filter.ContentFilters;
+import com.yutbe.app.history.WatchHistory;
 import com.yutbe.app.player.common.SleepTimer;
 import com.yutbe.app.util.ToastUtils;
 import com.yutbe.app.player.YuTbePlayerView;
@@ -114,6 +115,11 @@ public class Engine {
 			long duration = player.getDuration();
 			if (videoId != null && duration > 0) {
 				contentFilters.recordProgress(videoId, pos, duration);
+				if (duration - pos <= PREFETCH_BEFORE_END_MS && !videoId.equals(prefetchedFor)) {
+					prefetchedFor = videoId;
+					prefetchedNextUrl = null;
+					prefetchNext(videoId);
+				}
 			}
 			if (sleepTimer.consumeTimeReached()) {
 				player.pause();
@@ -171,10 +177,17 @@ public class Engine {
 	@NonNull
 	private final SleepTimer sleepTimer;
 	@NonNull
+	private final WatchHistory watchHistory;
+	@NonNull
 	private final Context appContext;
 	private int recoveries;
 	private static final int MAX_HISTORY = 50;
 	private static final int SUGGESTION_POOL = 5;
+	private static final long PREFETCH_BEFORE_END_MS = 30_000L;
+	@Nullable
+	private String prefetchedFor;
+	@Nullable
+	private String prefetchedNextUrl;
 	private static final int SUGGESTION_RETRIES = 4;
 	private static final long SUGGESTION_RETRY_DELAY_MS = 1500L;
 	/**
@@ -197,7 +210,9 @@ public class Engine {
 	              @NonNull QueueRepository queueRepository,
 	              @NonNull YoutubeExtractor extractor,
 	              @NonNull ContentFilters contentFilters,
-	              @NonNull SleepTimer sleepTimer) {
+	              @NonNull SleepTimer sleepTimer,
+	              @NonNull WatchHistory watchHistory) {
+		this.watchHistory = watchHistory;
 		this.extractor = extractor;
 		this.contentFilters = contentFilters;
 		this.sleepTimer = sleepTimer;
@@ -461,6 +476,7 @@ public class Engine {
 			failedAdaptiveCandidates.clear();
 			failedClients.clear();
 			recoveries = 0;
+			watchHistory.record(video.getId(), video.getTitle(), video.getAuthor(), video.getThumbnailUrl());
 			autoplayToken++;
 		}
 		watchedMarked = false;
@@ -812,6 +828,13 @@ public class Engine {
 		if (!manual && !prefs.isAutoplaySuggestionsEnabled()) return;
 		String sourceId = fromId != null ? fromId : videoId;
 		if (sourceId == null) return;
+		if (!manual && prefetchedNextUrl != null && sourceId.equals(prefetchedFor)) {
+			// Picked and loaded during the last seconds of the video, so it starts right away.
+			String url = prefetchedNextUrl;
+			prefetchedNextUrl = null;
+			tabManager.playInWatch(url);
+			return;
+		}
 		long token = ++autoplayToken;
 		requestSuggestions(sourceId, manual, token, 0);
 	}
@@ -842,6 +865,21 @@ public class Engine {
 	private void playSuggestion(@NonNull String sourceId, @NonNull List<String> ids, boolean manual) {
 		// The user moved on to another video in the meantime.
 		if (!Objects.equals(sourceId, watchVideoId())) return;
+		String pick = pickSuggestion(sourceId, ids);
+		if (pick == null) {
+			Log.i(TAG, "no suggestion videoId=" + sourceId);
+			if (manual) ToastUtils.show(appContext, R.string.no_suggestions);
+			return;
+		}
+		tabManager.playInWatch(Constant.HOME_URL + "/watch?v=" + pick);
+	}
+
+	/**
+	 * Picks the next video: at random among the top suggestions, preferring ones not watched in
+	 * the last day, falling back to the top suggestions so playback never stops.
+	 */
+	@Nullable
+	private String pickSuggestion(@NonNull String sourceId, @NonNull List<String> ids) {
 		// Pick at random among the top suggestions, preferring ones not watched in the last day,
 		// so autoplay wanders through similar videos instead of walking down one list.
 		List<String> fresh = new ArrayList<>();
@@ -853,13 +891,44 @@ public class Engine {
 			if (fresh.size() >= SUGGESTION_POOL) break;
 		}
 		List<String> pool = !fresh.isEmpty() ? fresh : any;
-		if (pool.isEmpty()) {
-			Log.i(TAG, "no suggestion videoId=" + sourceId);
-			if (manual) ToastUtils.show(appContext, R.string.no_suggestions);
+		if (pool.isEmpty()) return null;
+		return pool.get(java.util.concurrent.ThreadLocalRandom.current().nextInt(pool.size()));
+	}
+
+	/**
+	 * Near the end of a video, works out what plays next and extracts it in the background, so
+	 * the next video starts without waiting.
+	 */
+	private void prefetchNext(@NonNull String sourceId) {
+		if (!loopMode.skipsToNextOnEnded() || sleepTimer.mode() == SleepTimer.Mode.END_OF_VIDEO) return;
+		if (queueRepository.isEnabled() && queueRepository.hasItems()) {
+			QueueItem item = queueRepository.findRelative(watchVideoId(), 1);
+			if (item != null && item.getVideoUrl() != null) warm(item.getVideoUrl());
 			return;
 		}
-		String pick = pool.get(java.util.concurrent.ThreadLocalRandom.current().nextInt(pool.size()));
-		tabManager.playInWatch(Constant.HOME_URL + "/watch?v=" + pick);
+		if (tabManager.watchHasPlaylist() || !prefs.isAutoplaySuggestionsEnabled()) return;
+		tabManager.evalWatchJs(PAGE_SUGGESTIONS_SCRIPT, value -> {
+			List<String> pageIds = parsePageSuggestions(value, sourceId);
+			if (!pageIds.isEmpty()) {
+				rememberPrefetch(sourceId, pickSuggestion(sourceId, pageIds));
+				return;
+			}
+			extractor.getRelatedVideoIds(sourceId).whenComplete((ids, error) -> handler.post(() -> {
+				if (ids != null) rememberPrefetch(sourceId, pickSuggestion(sourceId, ids));
+			}));
+		});
+	}
+
+	private void rememberPrefetch(@NonNull String sourceId, @Nullable String pick) {
+		if (pick == null || !sourceId.equals(prefetchedFor) || !sourceId.equals(videoId)) return;
+		prefetchedNextUrl = Constant.HOME_URL + "/watch?v=" + pick;
+		warm(prefetchedNextUrl);
+	}
+
+	private void warm(@NonNull String url) {
+		extractor.getInfo(url, null).whenComplete((details, error) -> {
+			// Only fills the cache; the next play picks it up.
+		});
 	}
 
 

@@ -110,14 +110,28 @@
         return null;
     }
 
+    // Shows or hides "Subscriptions" in YouTube's own bottom bar.
+    function applyNativeSubscriptions(hide) {
+        for (const item of document.querySelectorAll("ytm-pivot-bar-item-renderer")) {
+            const url = item.data?.navigationEndpoint?.commandMetadata?.webCommandMetadata?.url
+                || item.querySelector("a")?.getAttribute("href") || "";
+            if (!url.startsWith("/feed/subscriptions") && !item.querySelector(".pivot-subs")) continue;
+            const value = hide ? "none" : "";
+            if (item.style.display !== value) item.style.display = value;
+        }
+    }
+
     function build() {
         const text = labels();
-        const hideShorts = !!preferences().enable_hide_shorts;
+        const prefs = preferences();
+        const hideShorts = !!prefs.enable_hide_shorts;
+        const hideSubscriptions = !!prefs.enable_hide_subscriptions;
         const bar = document.createElement("nav");
         bar.id = BAR_ID;
         const ns = "http://www.w3.org/2000/svg";
         for (const item of ITEMS) {
             if (item.key === "shorts" && hideShorts) continue;
+            if (item.key === "subscriptions" && hideSubscriptions) continue;
             const link = document.createElement("a");
             link.href = item.href;
             link.dataset.key = item.key;
@@ -149,16 +163,20 @@
         if (!document.body) return;
         ensureStyle();
         rememberAvatar();
+        const prefs = preferences();
+        applyNativeSubscriptions(!!prefs.enable_hide_subscriptions);
         let bar = document.getElementById(BAR_ID);
         if (!shouldShow()) {
             bar?.remove();
             document.documentElement.classList.remove(ROOT_CLASS);
             return;
         }
-        const hideShorts = !!preferences().enable_hide_shorts;
+        const hideShorts = !!prefs.enable_hide_shorts;
+        const hideSubscriptions = !!prefs.enable_hide_subscriptions;
         const hasShorts = !!bar?.querySelector("a[data-key=\"shorts\"]");
+        const hasSubscriptions = !!bar?.querySelector("a[data-key=\"subscriptions\"]");
         const shownAvatar = bar?.querySelector("a[data-key=\"you\"] img")?.getAttribute("src") || "";
-        if (bar && (hasShorts === hideShorts || shownAvatar !== avatar())) {
+        if (bar && (hasShorts === hideShorts || hasSubscriptions === hideSubscriptions || shownAvatar !== avatar())) {
             bar.remove();
             bar = null;
         }

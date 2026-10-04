@@ -109,7 +109,9 @@ public class StreamDownloaderImpl implements StreamDownloader {
 
 	@NonNull
 	private static Request.Builder streamRequest(@NonNull String url) {
-		Request.Builder builder = new Request.Builder().url(url);
+		// Downloads go straight to their file; storing them in the HTTP cache too would double
+		// the space they take.
+		Request.Builder builder = new Request.Builder().url(url).header("Cache-Control", "no-store");
 		// googlevideo rejects stream requests whose user agent does not match the client that
 		// produced the URL.
 		if (YoutubeParsingHelper.isVisionOsStreamingUrl(url)) {

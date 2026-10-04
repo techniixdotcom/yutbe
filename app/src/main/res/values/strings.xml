@@ -45,7 +45,7 @@
     <string name="action_next">Skip to next</string>
     <string name="general">Appearance</string>
     <string name="interface_category">Interface</string>
-    <string name="interface_summary">Show dislikes, hide Shorts</string>
+    <string name="interface_summary">Dislikes, Shorts, watched videos, blocked channels</string>
     <string name="player">Playback</string>
     <string name="playback_summary">Position, quality, speed, resize mode</string>
     <string name="gesture">Gesture</string>
@@ -123,7 +123,7 @@
     <string name="application_not_found">Application not found</string>
     <string name="press_back_again_to_exit">Press back again to exit</string>
     <string name="threads">Threads</string>
-    <string name="app_description">An advanced webview wrapper for YouTube.</string>
+    <string name="app_description">An advanced webview wrapper for YouTube. Based on Litube.</string>
     <string name="source_code">Source Code</string>
     <string name="clear_cache">Clear Cache</string>
     <string name="export_error_log">Export Error Log</string>
@@ -271,5 +271,15 @@
         <item quantity="other">%d videos</item>
     </plurals>
     <string name="no_suggestions">No suggested video to play next</string>
+    <string name="watch_history">Watch history</string>
+    <string name="watch_history_summary">Videos played in YuTbe, newest first</string>
+    <string name="watch_history_empty">No videos played yet.</string>
+    <string name="watch_history_tap_to_play">Tap a video to play it</string>
+    <string name="watch_history_clear">Clear history</string>
+    <string name="watch_history_clear_confirm">Remove every video from the watch history?</string>
+    <string name="hide_subscriptions">Hide Subscriptions tab</string>
+    <string name="hide_subscriptions_summary">For use without a YouTube account</string>
+    <string name="fetching_download_links">Fetching download links…</string>
+    <string name="image_url_empty">Image URL is empty</string>
 </resources>
 

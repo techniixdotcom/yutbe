@@ -47,8 +47,9 @@ public class CommonModule {
 	@Provides
 	@Singleton
 	public Cache provideOkHttpCache(@ApplicationContext Context ctx) {
+		// Holds page scripts, styles and fonts; thumbnails and video data are not stored here.
 		File dir = new File(ctx.getCacheDir(), "okhttp");
-		return new Cache(dir, 512L * 1024L * 1024L);
+		return new Cache(dir, 64L * 1024L * 1024L);
 	}
 
 	@Provides
@@ -102,7 +103,8 @@ public class CommonModule {
 	@UnstableApi
 	public SimpleCache provideSimpleCache(@ApplicationContext Context ctx) {
 		File dir = new File(ctx.getCacheDir(), "player");
-		var evictor = new LeastRecentlyUsedCacheEvictor(512L * 1024L * 1024L);
+		// Enough for a few recent videos (replays, seeking back, recovering a failed stream).
+		var evictor = new LeastRecentlyUsedCacheEvictor(128L * 1024L * 1024L);
 		return new SimpleCache(dir, evictor, new StandaloneDatabaseProvider(ctx));
 	}
 }

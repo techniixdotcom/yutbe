@@ -5,7 +5,6 @@ import androidx.annotation.Nullable;
 
 import org.schabi.newpipe.extractor.stream.AudioStream;
 import org.schabi.newpipe.extractor.stream.StreamType;
-import org.schabi.newpipe.extractor.stream.SubtitlesStream;
 import org.schabi.newpipe.extractor.stream.VideoStream;
 
 import java.util.ArrayList;
@@ -57,27 +56,6 @@ public class StreamCatalog {
 		return new ArrayList<>(streams.values());
 	}
 
-	@NonNull
-	public List<VideoStream> getMuxedStreams() {
-		Map<String, VideoStream> streams = new LinkedHashMap<>();
-		for (StreamCandidate candidate : muxedCandidates) {
-			if (candidate.getVideoStream() != null) {
-				streams.putIfAbsent(candidate.getVideoStream().getContent(), candidate.getVideoStream());
-			}
-		}
-		return new ArrayList<>(streams.values());
-	}
-
-	@NonNull
-	public List<SubtitlesStream> getSubtitleStreams() {
-		Map<String, SubtitlesStream> streams = new LinkedHashMap<>();
-		for (StreamCandidate candidate : subtitleCandidates) {
-			if (candidate.getSubtitleStream() != null) {
-				streams.putIfAbsent(candidate.getSubtitleStream().getContent(), candidate.getSubtitleStream());
-			}
-		}
-		return new ArrayList<>(streams.values());
-	}
 
 	@Nullable
 	public StreamCandidate firstDashManifest() {

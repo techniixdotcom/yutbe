@@ -1,6 +1,5 @@
 package com.yutbe.app.player;
 
-
 import android.app.Activity;
 import android.app.PictureInPictureParams;
 import android.content.Context;

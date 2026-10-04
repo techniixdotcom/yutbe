@@ -30,6 +30,7 @@ public record Extension(String key, int title, int summary, int icon, List<Exten
 						page(R.string.interface_category, R.string.interface_summary, R.drawable.ic_settings, List.of(
 										toggle(Constant.ENABLE_DISPLAY_DISLIKES, R.string.display_dislikes),
 										toggle(Constant.ENABLE_HIDE_SHORTS, R.string.hide_shorts),
+										toggle(Constant.ENABLE_HIDE_SUBSCRIPTIONS, R.string.hide_subscriptions, R.string.hide_subscriptions_summary),
 										toggle(Constant.ENABLE_GREY_WATCHED, R.string.grey_watched_videos, R.string.grey_watched_videos_summary),
 										item(Constant.WATCHED_THRESHOLD_PERCENT, R.string.watched_threshold, R.string.watched_threshold_summary),
 										item(Constant.ACTION_BLOCKED_CHANNELS, R.string.blocked_channels, R.string.blocked_channels_summary)
@@ -43,7 +44,8 @@ public record Extension(String key, int title, int summary, int icon, List<Exten
 										toggle(Constant.REMEMBER_PLAYBACK_SPEED, R.string.remember_playback_speed),
 										toggle(REMEMBER_RESIZE_MODE, R.string.remember_resize_mode),
 										item(Constant.ACTION_SLEEP_TIMER, R.string.sleep_timer, R.string.sleep_timer_summary),
-										item(Constant.ACTION_QUEUE, R.string.queue_list, R.string.queue_list_summary)
+										item(Constant.ACTION_QUEUE, R.string.queue_list, R.string.queue_list_summary),
+										item(Constant.ACTION_WATCH_HISTORY, R.string.watch_history, R.string.watch_history_summary)
 						)),
 						page(R.string.gesture, R.string.gesture_summary, R.drawable.ic_gesture, List.of(
 										toggle(Constant.GESTURE_SWIPE_DOWN_MINIMIZE, R.string.gesture_swipe_down_minimize, R.string.gesture_swipe_down_minimize_summary),

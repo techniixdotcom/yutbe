@@ -107,3 +107,6 @@
 
 # Content filter models stored with Gson
 -keep class com.yutbe.app.filter.** { *; }
+
+# Watch history entries stored with Gson
+-keep class com.yutbe.app.history.** { *; }

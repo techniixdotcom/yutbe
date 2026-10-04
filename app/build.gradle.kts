@@ -6,8 +6,8 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
-val appVersionName = "v1.0.3"
-val appVersionCode = 10003
+val appVersionName = "v1.0.4"
+val appVersionCode = 10004
 val apkBaseName = "yutbe" + appVersionName.removePrefix("v")
 
 base {
@@ -38,7 +38,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
-            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64"))
+            // 32-bit x86 phones have not been made for years; dropping them keeps the APK smaller.
+            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86_64"))
         }
     }
 
@@ -71,6 +72,11 @@ android {
             isMinifyEnabled = false
             isShrinkResources = false
         }
+    }
+
+    androidResources {
+        // Only the languages the app itself is translated into; libraries ship dozens more.
+        localeFilters += listOf("en", "es", "fr", "ja", "ko", "ru", "tr", "zh", "zh-rTW")
     }
 
     compileOptions {

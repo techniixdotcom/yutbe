@@ -286,7 +286,7 @@ public final class MainActivity extends AppCompatActivity implements LifecycleEv
 		if (url != null) {
 			if (isDownloadAction) {
 				String loadUrl = url.replace(Constant.YOUTUBE_MOBILE_HOST, "www.youtube.com");
-				long fetchToast = ToastUtils.show(this, "Fetching download links...");
+				long fetchToast = ToastUtils.show(this, R.string.fetching_download_links);
 				handler.postDelayed(() -> ToastUtils.cancel(fetchToast), 1000);
 				handler.postDelayed(() -> new DownloadDialog(loadUrl, this, youtubeExtractor).show(), 600);
 			} else {

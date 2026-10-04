@@ -98,6 +98,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -810,11 +812,11 @@ public class YoutubeStreamExtractor extends StreamExtractor {
         final Localization localization = getExtractorLocalization();
         final ContentCountry contentCountry = getExtractorContentCountry();
 
-        fetchVisionOsClient(localization, contentCountry, videoId);
-        setStreamType();
-
-        fetchWebClientMetadataAndSetThumbnails(localization, contentCountry, videoId);
-
+        // YuTbe: the WEB metadata and "next" requests do not depend on the VISIONOS player
+        // response, so they run while it is in flight instead of one after another.
+        final CompletableFuture<JsonObject> webMetadata = requestAsync(() ->
+                YoutubeStreamHelper.getWebMetadataPlayerResponse(
+                        localization, contentCountry, videoId));
         final byte[] nextBody = JsonWriter.string(
                 prepareDesktopJsonBuilder(localization, contentCountry)
                         .value(VIDEO_ID, videoId)
@@ -822,7 +824,61 @@ public class YoutubeStreamExtractor extends StreamExtractor {
                         .value(RACY_CHECK_OK, true)
                         .done())
                 .getBytes(StandardCharsets.UTF_8);
-        nextResponse = getJsonPostResponse(NEXT, nextBody, localization);
+        final CompletableFuture<JsonObject> next = requestAsync(() ->
+                getJsonPostResponse(NEXT, nextBody, localization));
+
+        fetchVisionOsClient(localization, contentCountry, videoId);
+        setStreamType();
+
+        applyWebClientMetadataAndSetThumbnails(webMetadata, videoId);
+        nextResponse = await(next);
+    }
+
+    @FunctionalInterface
+    private interface JsonRequest {
+        JsonObject run() throws IOException, ExtractionException;
+    }
+
+    /**
+     * Runs a request on its own thread. A new thread is used on purpose: it inherits the
+     * caller's inheritable thread-local state, which the app's downloader relies on.
+     */
+    @Nonnull
+    private static CompletableFuture<JsonObject> requestAsync(@Nonnull final JsonRequest request) {
+        final CompletableFuture<JsonObject> future = new CompletableFuture<>();
+        final Thread thread = new Thread(() -> {
+            try {
+                future.complete(request.run());
+            } catch (final Throwable e) {
+                future.completeExceptionally(e);
+            }
+        }, "youtube-stream-request");
+        thread.setDaemon(true);
+        thread.start();
+        return future;
+    }
+
+    @Nonnull
+    private static JsonObject await(@Nonnull final CompletableFuture<JsonObject> future)
+            throws IOException, ExtractionException {
+        try {
+            return future.get();
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted while waiting for a response", e);
+        } catch (final ExecutionException e) {
+            final Throwable cause = e.getCause();
+            if (cause instanceof IOException) {
+                throw (IOException) cause;
+            }
+            if (cause instanceof ExtractionException) {
+                throw (ExtractionException) cause;
+            }
+            if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            }
+            throw new ExtractionException(cause);
+        }
     }
 
     private static void checkPlayabilityStatus(@Nonnull final JsonObject playabilityStatus)
@@ -905,13 +961,11 @@ public class YoutubeStreamExtractor extends StreamExtractor {
                 .getObject(PLAYER_CAPTIONS_TRACKLIST_RENDERER);
     }
 
-    private void fetchWebClientMetadataAndSetThumbnails(
-            @Nonnull final Localization localization,
-            @Nonnull final ContentCountry contentCountry,
+    private void applyWebClientMetadataAndSetThumbnails(
+            @Nonnull final CompletableFuture<JsonObject> webMetadata,
             @Nonnull final String videoId) {
         try {
-            final JsonObject webPlayerResponse = YoutubeStreamHelper.getWebMetadataPlayerResponse(
-                    localization, contentCountry, videoId);
+            final JsonObject webPlayerResponse = await(webMetadata);
 
             // Important note: we don't checkPlayabilityStatus() here, because we use this request
             // exclusively for metadata, not for extracting streams. It turns out that when

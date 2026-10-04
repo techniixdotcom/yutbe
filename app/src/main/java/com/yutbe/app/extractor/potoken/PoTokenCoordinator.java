@@ -11,7 +11,6 @@ import com.google.gson.JsonParser;
 import com.yutbe.app.extractor.AuthContext;
 import com.yutbe.app.extractor.ExtractionSession;
 import com.yutbe.app.extractor.ExtractionSessionScope;
-import com.tencent.mmkv.MMKV;
 
 import org.schabi.newpipe.extractor.localization.ContentCountry;
 import org.schabi.newpipe.extractor.localization.Localization;
@@ -40,7 +39,6 @@ import okhttp3.Response;
 @Singleton
 public final class PoTokenCoordinator {
 	private static final String REQUEST_KEY = "O43z0dpjhgX20SCx4KAo";
-	private static final String KEY_PREFIX = "potoken.";
 	private static final long INIT_TIMEOUT_MS = 4_000L;
 	private static final long MINT_TIMEOUT_MS = 2_000L;
 
@@ -55,8 +53,6 @@ public final class PoTokenCoordinator {
 	@NonNull
 	private final OkHttpClient okHttpClient;
 	@NonNull
-	private final MMKV kv;
-	@NonNull
 	private final Object lock = new Object();
 
 	@Nullable
@@ -68,14 +64,12 @@ public final class PoTokenCoordinator {
 	                          @NonNull PoTokenBridge poTokenBridge,
 	                          @NonNull PoTokenHost poTokenHost,
 	                          @NonNull ExtractionSessionScope scope,
-	                          @NonNull OkHttpClient okHttpClient,
-	                          @NonNull MMKV kv) {
+	                          @NonNull OkHttpClient okHttpClient) {
 		this.gson = gson;
 		this.poTokenBridge = poTokenBridge;
 		this.poTokenHost = poTokenHost;
 		this.scope = scope;
 		this.okHttpClient = okHttpClient;
-		this.kv = kv;
 	}
 
 	@Nullable

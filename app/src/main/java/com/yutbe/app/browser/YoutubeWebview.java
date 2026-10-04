@@ -253,6 +253,19 @@ public class YoutubeWebview extends WebView {
 	 * https, so other sites that end up in this WebView cannot use it.
 	 */
 	private volatile boolean trustedPage;
+	@Nullable
+	private volatile String pageUrl;
+
+	/**
+	 * Video data requested by the page itself while it shows a regular video page. Shorts are
+	 * left alone because the page's player plays them.
+	 */
+	private boolean isHiddenPlayerMedia(@NonNull Uri uri, @Nullable String path) {
+		String host = uri.getHost();
+		if (host == null || path == null || !path.startsWith("/videoplayback")) return false;
+		if (!host.endsWith(".googlevideo.com")) return false;
+		return Constant.PAGE_WATCH.equals(UrlUtils.getPageClass(pageUrl));
+	}
 	private static final java.util.Set<String> BRIDGE_ORIGINS = java.util.Set.of("https://youtube.com", "https://*.youtube.com");
 	/**
 	 * True when the page talks to the app through an origin-restricted message channel; false on
@@ -429,6 +442,7 @@ public class YoutubeWebview extends WebView {
 			public void doUpdateVisitedHistory(@NonNull WebView view, @NonNull String url, boolean isReload) {
 				super.doUpdateVisitedHistory(view, url, isReload);
 				trustedPage = UrlUtils.isTrustedPageUrl(url);
+				pageUrl = url;
 				pushBridgeState(url);
 				evaluateJavascript("window.dispatchEvent(new Event('doUpdateVisitedHistory'));", null);
 				if (updateVisitedHistory != null) updateVisitedHistory.accept(url);
@@ -439,6 +453,7 @@ public class YoutubeWebview extends WebView {
 			public void onPageStarted(@NonNull WebView view, @NonNull String url, @Nullable Bitmap favicon) {
 				super.onPageStarted(view, url, favicon);
 				trustedPage = UrlUtils.isTrustedPageUrl(url);
+				pageUrl = url;
 				frame.epoch.incrementAndGet();
 				frame.finished = false;
 				frame.url = url;
@@ -492,6 +507,13 @@ public class YoutubeWebview extends WebView {
 			public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
 				Uri uri = request.getUrl();
 				String path = uri.getPath();
+				if (isHiddenPlayerMedia(uri, path)) {
+					// The page's own player is hidden and muted on video pages; the app's player
+					// plays the video. Letting the page download the same video as well would
+					// halve the bandwidth left for the real player.
+					return new WebResourceResponse("text/plain", "utf-8", 204, "No Content",
+									Collections.emptyMap(), new ByteArrayInputStream(new byte[0]));
+				}
 				if (path != null && path.equals("/live_chat") && okHttpWebViewInterceptor != null && okHttpWebViewInterceptor.canExecute(request)) {
 					String url = uri.toString();
 					Response okHttpResponse = null;
