@@ -29,7 +29,23 @@ public final class Constant {
 	public static final Map<String, Integer> DEFAULT_INT_PREFERENCES = Map.of(
 					WATCHED_THRESHOLD_PERCENT, DEFAULT_WATCHED_THRESHOLD_PERCENT);
 	public static final List<String> PERCENT_KEYS = List.of(WATCHED_THRESHOLD_PERCENT);
-	public static final List<String> ACTION_KEYS = List.of(ACTION_BLOCKED_CHANNELS);
+	public static final String QUALITY_WIFI = "quality_wifi";
+	public static final String QUALITY_MOBILE = "quality_mobile";
+	public static final String QUALITY_REMEMBERED = "remembered";
+	public static final String QUALITY_BEST = "best";
+	/**
+	 * Values offered for the Wi-Fi and mobile data quality settings, best first.
+	 */
+	public static final List<String> QUALITY_CHOICES = List.of(
+					QUALITY_REMEMBERED, QUALITY_BEST,
+					"2160p", "1440p", "1080p", "720p", "480p", "360p", "240p", "144p");
+	public static final Map<String, String> DEFAULT_STRING_PREFERENCES = Map.of(
+					QUALITY_WIFI, QUALITY_REMEMBERED,
+					QUALITY_MOBILE, QUALITY_REMEMBERED);
+	public static final List<String> CHOICE_KEYS = List.of(QUALITY_WIFI, QUALITY_MOBILE);
+	public static final String ACTION_SLEEP_TIMER = "action_sleep_timer";
+	public static final String ACTION_QUEUE = "action_queue";
+	public static final List<String> ACTION_KEYS = List.of(ACTION_BLOCKED_CHANNELS, ACTION_SLEEP_TIMER, ACTION_QUEUE);
 	/**
 	 * Gestures that are turned off while swipe down to minimize is on.
 	 */

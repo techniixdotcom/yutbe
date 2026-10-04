@@ -38,8 +38,12 @@ public record Extension(String key, int title, int summary, int icon, List<Exten
 										toggle(REMEMBER_LAST_POSITION, R.string.remember_last_position),
 										toggle(ENABLE_AUTOPLAY_SUGGESTIONS, R.string.autoplay_suggestions),
 										toggle(Constant.REMEMBER_QUALITY, R.string.remember_quality),
+										item(Constant.QUALITY_WIFI, R.string.quality_wifi, R.string.quality_wifi_summary),
+										item(Constant.QUALITY_MOBILE, R.string.quality_mobile, R.string.quality_mobile_summary),
 										toggle(Constant.REMEMBER_PLAYBACK_SPEED, R.string.remember_playback_speed),
-										toggle(REMEMBER_RESIZE_MODE, R.string.remember_resize_mode)
+										toggle(REMEMBER_RESIZE_MODE, R.string.remember_resize_mode),
+										item(Constant.ACTION_SLEEP_TIMER, R.string.sleep_timer, R.string.sleep_timer_summary),
+										item(Constant.ACTION_QUEUE, R.string.queue_list, R.string.queue_list_summary)
 						)),
 						page(R.string.gesture, R.string.gesture_summary, R.drawable.ic_gesture, List.of(
 										toggle(Constant.GESTURE_SWIPE_DOWN_MINIMIZE, R.string.gesture_swipe_down_minimize, R.string.gesture_swipe_down_minimize_summary),
@@ -117,6 +121,10 @@ public record Extension(String key, int title, int summary, int icon, List<Exten
 
 	public boolean isPercent() {
 		return key != null && Constant.PERCENT_KEYS.contains(key);
+	}
+
+	public boolean isChoice() {
+		return key != null && Constant.CHOICE_KEYS.contains(key);
 	}
 
 	public boolean isAction() {

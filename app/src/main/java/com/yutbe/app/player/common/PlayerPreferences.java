@@ -1,5 +1,9 @@
 package com.yutbe.app.player.common;
 
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkCapabilities;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
@@ -9,6 +13,7 @@ import com.google.gson.Gson;
 import com.yutbe.app.Constant;
 import com.yutbe.app.extension.ExtensionManager;
 import com.tencent.mmkv.MMKV;
+import dagger.hilt.android.qualifiers.ApplicationContext;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -61,8 +66,27 @@ public final class PlayerPreferences {
 	@NonNull
 	private final MutableLiveData<PlayerLoopMode> loopModeState;
 
+	@Nullable
+	@lombok.Getter(lombok.AccessLevel.NONE)
+	private final Context appContext;
+
 	@Inject
+	public PlayerPreferences(@NonNull @ApplicationContext Context appContext,
+	                         @NonNull ExtensionManager extensionManager,
+	                         @NonNull MMKV mmkv,
+	                         @NonNull Gson gson) {
+		this(extensionManager, mmkv, gson, appContext);
+	}
+
 	public PlayerPreferences(@NonNull ExtensionManager extensionManager, @NonNull MMKV mmkv, @NonNull Gson gson) {
+		this(extensionManager, mmkv, gson, null);
+	}
+
+	private PlayerPreferences(@NonNull ExtensionManager extensionManager,
+	                          @NonNull MMKV mmkv,
+	                          @NonNull Gson gson,
+	                          @Nullable Context appContext) {
+		this.appContext = appContext;
 		this.extensionManager = extensionManager;
 		this.mmkv = mmkv;
 		this.gson = gson;
@@ -81,12 +105,43 @@ public final class PlayerPreferences {
 		mmkv.encode(KEY_PLAYBACK_SPEED, speed);
 	}
 
+	/**
+	 * Quality to start videos in. The Wi-Fi / mobile data setting wins when it is set to a
+	 * fixed value; "best" means the highest available; "remembered" falls back to the last
+	 * quality picked in the player.
+	 */
 	@Nullable
 	public String getPreferredQuality() {
+		String networkQuality = extensionManager.getString(onMobileData()
+						? com.yutbe.app.extension.Constant.QUALITY_MOBILE
+						: com.yutbe.app.extension.Constant.QUALITY_WIFI);
+		if (com.yutbe.app.extension.Constant.QUALITY_BEST.equals(networkQuality)) return null;
+		if (!com.yutbe.app.extension.Constant.QUALITY_REMEMBERED.equals(networkQuality)
+						&& com.yutbe.app.extension.Constant.QUALITY_CHOICES.contains(networkQuality)) {
+			return networkQuality;
+		}
 		boolean enabled = extensionManager.isEnabled(com.yutbe.app.extension.Constant.REMEMBER_QUALITY);
 		if (!enabled) return null;
 		String quality = mmkv.decodeString(KEY_VIDEO_QUALITY, null);
 		return quality == null || quality.isBlank() ? null : quality;
+	}
+
+	/**
+	 * True when the active connection is mobile data (not Wi-Fi or Ethernet).
+	 */
+	public boolean onMobileData() {
+		if (appContext == null) return false;
+		ConnectivityManager manager = appContext.getSystemService(ConnectivityManager.class);
+		if (manager == null) return false;
+		try {
+			NetworkCapabilities caps = manager.getNetworkCapabilities(manager.getActiveNetwork());
+			if (caps == null) return false;
+			return caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
+							&& !caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+							&& !caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET);
+		} catch (SecurityException e) {
+			return false;
+		}
 	}
 
 	public void setPreferredQuality(@NonNull String quality) {

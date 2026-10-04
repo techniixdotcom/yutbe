@@ -29,6 +29,7 @@
             icons: Object.freeze({
                 download: 'M480-336 288-528l51-51 105 105v-246h72v246l105-105 51 51-192 192ZM264-192q-30 0-51-21t-21-51v-72h72v72h432v-72h72v72q0 30-21 51t-51 21H264Z',
                 queue: 'M120-320v-80h280v80H120Zm0-160v-80h440v80H120Zm0-160v-80h440v80H120Zm520 480v-160H480v-80h160v-160h80v160h160v80H720v160h-80Z',
+                playNext: 'M120-320v-80h320v80H120Zm0-160v-80h480v80H120Zm0-160v-80h480v80H120Zm520 440v-240l200 120-200 120Z',
                 chat: 'M240-384h336v-72H240v72Zm0-132h480v-72H240v72Zm0-132h480v-72H240v72ZM96-96v-696q0-29.7 21.15-50.85Q138.3-864 168-864h624q29.7 0 50.85 21.15Q864-821.7 864-792v480q0 29.7-21.15 50.85Q821.7-240 792-240H240L96-96Zm114-216h582v-480H168v522l42-42Zm-42 0v-480 480Z',
                 openWith: 'M648-96q-50 0-85-35t-35-85q0-9 4-29L295-390q-16 14-36.05 22-20.04 8-42.95 8-50 0-85-35t-35-85q0-50 35-85t85-35q23 0 43 8t36 22l237-145q-2-7-3-13.81-1-6.81-1-15.19 0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35q-23 0-43-8t-36-22L332-509q2 7 3 13.81 1 6.81 1 15.19 0 8.38-1 15.19-1 6.81-3 13.81l237 145q16-14 36.05-22 20.04-8 42.95-8 50 0 85 35t35 85q0 50-35 85t-85 35Zm0-72q20.4 0 34.2-13.8Q696-195.6 696-216q0-20.4-13.8-34.2Q668.4-264 648-264q-20.4 0-34.2 13.8Q600-236.4 600-216q0 20.4 13.8 34.2Q627.6-168 648-168ZM216-432q20.4 0 34.2-14 13.8-14 13.8-34t-13.8-34q-13.8-14-34.2-14-20.4 0-34.2 14-13.8 14-13.8 34t13.8 34q13.8 14 34.2 14Zm466-277.8q14-13.8 14-34.2 0-20.4-13.8-34.2Q668.4-792 648-792q-20.4 0-34.2 13.8Q600-764.4 600-744q0 20.4 14 34.2 14 13.8 34 13.8t34-13.8ZM648-216ZM216-480Zm432-264Z',
                 about: 'M444-288h72v-240h-72v240Zm35.79-312q15.21 0 25.71-10.29t10.5-25.5q0-15.21-10.29-25.71t-25.5-10.5q-15.21 0-25.71 10.29t-10.5 25.5q0 15.21 10.29 25.71t25.5 10.5Zm.49 504Q401-96 331-126t-122.5-82.5Q156-261 126-330.96t-30-149.5Q96-560 126-629.5q30-69.5 82.5-122T330.96-834q69.96-30 149.5-30t149.04 30q69.5 30 122 82.5T834-629.28q30 69.73 30 149Q864-401 834-331t-82.5 122.5Q699-156 629.28-126q-69.73 30-149 30Zm-.28-72q130 0 221-91t91-221q0-130-91-221t-221-91q-130 0-221 91t-91 221q0 130 91 221t221 91Zm0-312Z',
@@ -124,14 +125,14 @@
         // Returns button labels for the current page language.
         const Lang = {
             texts: Object.freeze({
-                zh: { download: '下载', addToQueue: '加入队列', openWith: '打开方式', extension: '扩展', chat: '聊天室', about: '关于' },
-                zt: { download: '下載', addToQueue: '加入佇列', openWith: '開啟方式', extension: '擴充功能', chat: '聊天室', about: '關於' },
-                en: { download: 'Download', addToQueue: 'Add to queue', openWith: 'Open with', extension: 'Extension', chat: 'Chat', about: 'About' },
-                ja: { download: 'ダウンロード', addToQueue: 'キューに追加', openWith: 'アプリで開く', extension: '拡張機能', chat: 'チャット', about: 'このアプリについて' },
-                ko: { download: '다운로드', addToQueue: '대기열에 추가', openWith: '다른 앱으로 열기', extension: '플러그인', chat: '채팅', about: '정보' },
-                fr: { download: 'Télécharger', addToQueue: 'Ajouter à la file', openWith: 'Ouvrir avec', extension: 'Extension', chat: 'Chat', about: 'À propos' },
-                ru: { download: 'Скачать', addToQueue: 'Добавить в очередь', openWith: 'Открыть с помощью', extension: 'Расширение', chat: 'Чат', about: 'О программе' },
-                tr: { download: 'İndir', addToQueue: 'Kuyruğa ekle', openWith: 'Birlikte aç', extension: 'Uzantı', chat: 'Sohbet', about: 'Hakkında' }
+                zh: { download: '下载', addToQueue: '加入队列', playNext: '下一个播放', openWith: '打开方式', extension: '扩展', chat: '聊天室', about: '关于' },
+                zt: { download: '下載', addToQueue: '加入佇列', playNext: '下一個播放', openWith: '開啟方式', extension: '擴充功能', chat: '聊天室', about: '關於' },
+                en: { download: 'Download', addToQueue: 'Add to queue', playNext: 'Play next', openWith: 'Open with', extension: 'Extension', chat: 'Chat', about: 'About' },
+                ja: { download: 'ダウンロード', addToQueue: 'キューに追加', playNext: '次に再生', openWith: 'アプリで開く', extension: '拡張機能', chat: 'チャット', about: 'このアプリについて' },
+                ko: { download: '다운로드', addToQueue: '대기열에 추가', playNext: '다음에 재생', openWith: '다른 앱으로 열기', extension: '플러그인', chat: '채팅', about: '정보' },
+                fr: { download: 'Télécharger', addToQueue: 'Ajouter à la file', playNext: 'Lire ensuite', openWith: 'Ouvrir avec', extension: 'Extension', chat: 'Chat', about: 'À propos' },
+                ru: { download: 'Скачать', addToQueue: 'Добавить в очередь', playNext: 'Воспроизвести следующим', openWith: 'Открыть с помощью', extension: 'Расширение', chat: 'Чат', about: 'О программе' },
+                tr: { download: 'İndir', addToQueue: 'Kuyruğa ekle', playNext: 'Sıradaki olarak oynat', openWith: 'Birlikte aç', extension: 'Uzantı', chat: 'Sohbet', about: 'Hakkında' }
             }),
 
             get(key) {
@@ -1085,6 +1086,14 @@
             },
 
             ensureQueueItem(queueMenuItem) {
+                return Sheet.ensureMenuAction(queueMenuItem, 'addToQueue', Config.icons.queue, payload => yutbe.addToQueue(payload));
+            },
+
+            ensurePlayNextItem(menuItem) {
+                return Sheet.ensureMenuAction(menuItem, 'playNext', Config.icons.playNext, payload => yutbe.playNext?.(payload));
+            },
+
+            ensureMenuAction(queueMenuItem, labelKey, iconPath, action) {
                 if (!(queueMenuItem instanceof Element)) return false;
                 const menuButton = queueMenuItem.querySelector('button.menu-item-button') || queueMenuItem.querySelector('button');
                 if (!(menuButton instanceof Element)) return false;
@@ -1106,27 +1115,30 @@
                     menuSvg.setAttribute('viewBox', '0 -960 960 960');
                     DOM.fitIcon(queueMenuItem);
                     if (menuPath instanceof SVGElement) {
-                        menuPath.setAttribute('d', Config.icons.queue);
+                        menuPath.setAttribute('d', iconPath);
                     }
                 } else {
                     const iconHost = queueMenuItem.querySelector('.yt-spec-button-shape-next__icon');
                     if (iconHost instanceof Element && !iconHost.querySelector('svg')) {
-                        iconHost.appendChild(DOM.svgIcon(Config.icons.queue));
+                        iconHost.appendChild(DOM.svgIcon(iconPath));
                     } else if (!queueMenuItem.querySelector('svg')) {
-                        menuButton.prepend(DOM.svgIcon(Config.icons.queue));
+                        menuButton.prepend(DOM.svgIcon(iconPath));
                     }
                 }
 
-                menuText.textContent = Lang.get('addToQueue');
-                menuButton.setAttribute('aria-label', Lang.get('addToQueue'));
-                DOM.bind(menuButton, 'click', () => {
-                    const payload = queueMenuItem.dataset.yutbeQueuePayload;
-                    if (payload) {
-                        yutbe.addToQueue(payload);
-                    } else {
-                        yutbe.showQueueItemUnavailable?.();
-                    }
-                }, true);
+                menuText.textContent = Lang.get(labelKey);
+                menuButton.setAttribute('aria-label', Lang.get(labelKey));
+                if (menuButton.dataset.yutbeAction !== labelKey) {
+                    menuButton.dataset.yutbeAction = labelKey;
+                    menuButton.addEventListener('click', () => {
+                        const payload = queueMenuItem.dataset.yutbeQueuePayload;
+                        if (payload) {
+                            action(payload);
+                        } else {
+                            yutbe.showQueueItemUnavailable?.();
+                        }
+                    }, true);
+                }
                 return true;
             },
 
@@ -1149,9 +1161,15 @@
                     existingItems.forEach((node, index) => {
                         if (index > 0) node.remove();
                     });
+                    const nextItems = Array.from(menuContainer.children)
+                        .filter(child => child instanceof Element && child.matches?.('[data-yutbe-next-menu-item="true"]'));
+                    nextItems.forEach((node, index) => {
+                        if (index > 0) node.remove();
+                    });
 
                     if (!State.menuItem?.videoId) {
                         existingItems.forEach(node => node.remove());
+                        nextItems.forEach(node => node.remove());
                         return true;
                     }
 
@@ -1165,6 +1183,7 @@
                     const payload = Queue.toPayload(State.menuItem);
                     if (!payload) {
                         existingItems.forEach(node => node.remove());
+                        nextItems.forEach(node => node.remove());
                         return true;
                     }
                     queueMenuElement.dataset.yutbeQueuePayload = payload;
@@ -1172,6 +1191,18 @@
                     if (!Sheet.ensureQueueItem(queueMenuElement)) return false;
                     if (queueMenuElement.parentElement !== menuContainer || queueMenuElement !== menuContainer.firstElementChild) {
                         menuContainer.insertBefore(queueMenuElement, menuContainer.firstElementChild);
+                    }
+
+                    let nextMenuElement = nextItems[0];
+                    if (!(nextMenuElement instanceof Element)) {
+                        nextMenuElement = queueMenuElement.cloneNode(true);
+                        delete nextMenuElement.dataset.yutbeQueueMenuItem;
+                        nextMenuElement.dataset.yutbeNextMenuItem = 'true';
+                        nextMenuElement.querySelectorAll('[data-yutbe-action]').forEach(node => delete node.dataset.yutbeAction);
+                    }
+                    nextMenuElement.dataset.yutbeQueuePayload = payload;
+                    if (Sheet.ensurePlayNextItem(nextMenuElement) && queueMenuElement.nextElementSibling !== nextMenuElement) {
+                        queueMenuElement.after(nextMenuElement);
                     }
 
                     const item = queueMenuElement.querySelector?.('ytm-menu-item') || queueMenuElement;

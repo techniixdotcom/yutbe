@@ -114,7 +114,7 @@ public class TabManager {
 		}
 		var homeTag = Constant.PAGE_HOME;
 		var ft = fm().beginTransaction();
-		var suspendWatch = shouldSuspend(pageClass(tab), targetTag, extensionManager.isEnabled(Constant.ENABLE_IN_APP_MINI_PLAYER), yutbePlayer().canSuspendWatch());
+		var suspendWatch = shouldSuspend(pageClass(tab), targetTag, miniPlayerAllowed(), yutbePlayer().canSuspendWatch());
 		if (suspendWatch) suspendTab(ft);
 		else if (tab != null) ft.hide(tab);
 		if (!NAV_TAGS.contains(targetTag)) {
@@ -324,7 +324,7 @@ public class TabManager {
 						&& minimizeWatch()) {
 			return true;
 		}
-		if (shouldSuspendBack(pageClass(tab), extensionManager.isEnabled(Constant.ENABLE_IN_APP_MINI_PLAYER), yutbePlayer().canSuspendWatch())) {
+		if (shouldSuspendBack(pageClass(tab), miniPlayerAllowed(), yutbePlayer().canSuspendWatch())) {
 			var prevTab = previousTab();
 			String prevTabUrl = prevTab != null ? prevTab.getUrl() : null;
 			if (prev != null && !Constant.PAGE_WATCH.equals(prev.tag()) && !prev.url().equals(prevTabUrl)) {
@@ -387,8 +387,20 @@ public class TabManager {
 		ft.hide(tab);
 	}
 
+	/**
+	 * With "swipe down to minimize" on, every way of leaving a playing video (back, the bottom
+	 * navigation, opening another page) uses the bottom bar instead of the floating player.
+	 */
+	private boolean minimizeToBar() {
+		return extensionManager.isEnabled(com.yutbe.app.extension.Constant.GESTURE_SWIPE_DOWN_MINIMIZE);
+	}
+
+	private boolean miniPlayerAllowed() {
+		return minimizeToBar() || extensionManager.isEnabled(Constant.ENABLE_IN_APP_MINI_PLAYER);
+	}
+
 	private void enterMiniPlayer() {
-		enterMiniPlayer(false);
+		enterMiniPlayer(minimizeToBar());
 	}
 
 	private void enterMiniPlayer(boolean bar) {

@@ -1,5 +1,7 @@
 package com.yutbe.app.extension;
 
+import androidx.annotation.NonNull;
+
 import com.tencent.mmkv.MMKV;
 
 import java.util.HashMap;
@@ -80,6 +82,22 @@ public class ExtensionManager {
 		}
 	}
 
+	@NonNull
+	public String getString(String key) {
+		String fallback = Constant.DEFAULT_STRING_PREFERENCES.getOrDefault(key, "");
+		String value = mmkv.decodeString(prefKey(key), fallback);
+		return value == null ? fallback : value;
+	}
+
+	public void setString(String key, @NonNull String value) {
+		String pref = prefKey(key);
+		boolean changed = !value.equals(mmkv.decodeString(pref, null));
+		mmkv.encode(pref, value);
+		if (changed) {
+			bumpVersion();
+		}
+	}
+
 	/**
 	 * Tells every page that content filter data (watched videos, blocked channels) changed.
 	 */
@@ -89,6 +107,13 @@ public class ExtensionManager {
 
 	public void resetToDefault() {
 		boolean changed = false;
+		for (Map.Entry<String, String> entry : Constant.DEFAULT_STRING_PREFERENCES.entrySet()) {
+			String key = prefKey(entry.getKey());
+			if (!entry.getValue().equals(mmkv.decodeString(key, null))) {
+				changed = true;
+			}
+			mmkv.encode(key, entry.getValue());
+		}
 		for (Map.Entry<String, Integer> entry : Constant.DEFAULT_INT_PREFERENCES.entrySet()) {
 			String key = prefKey(entry.getKey());
 			int value = entry.getValue();

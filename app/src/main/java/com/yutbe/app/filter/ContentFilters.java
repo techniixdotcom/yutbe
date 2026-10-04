@@ -14,8 +14,10 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import javax.inject.Inject;
@@ -43,6 +45,10 @@ public final class ContentFilters {
 	private final Gson gson;
 	@NonNull
 	private final ExtensionManager extensionManager;
+	@Nullable
+	private String cachedScriptData;
+	private long cachedVersion = -1L;
+	private int cachedWatchCount = -1;
 
 	@Inject
 	public ContentFilters(@NonNull MMKV mmkv,
@@ -79,6 +85,10 @@ public final class ContentFilters {
 		synchronized (this) {
 			long stored = watchStore.decodeLong(videoId, -1L);
 			if (stored >= 0L && percentOf(stored) >= percent) return;
+			int threshold = watchedThreshold();
+			if ((stored < 0L ? 0 : percentOf(stored)) < threshold && percent >= threshold) {
+				watchDirty = true;
+			}
 			watchStore.encode(videoId, pack(percent, System.currentTimeMillis() / 1000L));
 			pruneIfNeeded();
 		}
@@ -136,6 +146,76 @@ public final class ContentFilters {
 			}
 		}
 		return out;
+	}
+
+	/**
+	 * Watch history as video id to {percent, epoch seconds}, for backups.
+	 */
+	@NonNull
+	public synchronized Map<String, long[]> exportWatchHistory() {
+		Map<String, long[]> out = new LinkedHashMap<>();
+		String[] keys = watchStore.allKeys();
+		if (keys == null) return out;
+		for (String key : keys) {
+			long packed = watchStore.decodeLong(key, -1L);
+			if (packed >= 0L && isVideoId(key)) {
+				out.put(key, new long[]{percentOf(packed), timeOf(packed)});
+			}
+		}
+		return out;
+	}
+
+	/**
+	 * Merges a backed-up watch history, keeping the higher percentage per video.
+	 *
+	 * @return number of videos added or raised
+	 */
+	public synchronized int importWatchHistory(@NonNull Map<String, long[]> history) {
+		int changed = 0;
+		long now = System.currentTimeMillis() / 1000L;
+		for (Map.Entry<String, long[]> entry : history.entrySet()) {
+			String id = entry.getKey();
+			long[] value = entry.getValue();
+			if (!isVideoId(id) || value == null || value.length < 2) continue;
+			int percent = (int) Math.max(0L, Math.min(100L, value[0]));
+			long time = Math.max(0L, Math.min(now, value[1]));
+			long stored = watchStore.decodeLong(id, -1L);
+			if (stored >= 0L && percentOf(stored) >= percent) continue;
+			watchStore.encode(id, pack(percent, time));
+			changed++;
+		}
+		pruneIfNeeded();
+		if (changed > 0) extensionManager.notifyChanged();
+		return changed;
+	}
+
+	/**
+	 * Adds blocked channels from a backup, skipping ones that are already blocked.
+	 *
+	 * @return number of channels added
+	 */
+	public synchronized int importBlockedChannels(@NonNull List<BlockedChannel> channels) {
+		List<BlockedChannel> items = blockedChannels();
+		int added = 0;
+		for (BlockedChannel channel : channels) {
+			if (channel == null || channel.name() == null) continue;
+			String name = channel.name().trim();
+			if (name.isEmpty() || name.length() > 200) continue;
+			String path = channelPath(channel.path());
+			String altPath = channelPath(channel.altPath());
+			boolean known = false;
+			for (BlockedChannel item : items) {
+				if (matches(item, name, path) || matches(item, name, altPath)) {
+					known = true;
+					break;
+				}
+			}
+			if (known) continue;
+			items.add(new BlockedChannel(name, path, altPath, Math.max(0L, channel.blockedAt())));
+			added++;
+		}
+		if (added > 0) writeBlocked(items);
+		return added;
 	}
 
 	/**
@@ -258,7 +338,26 @@ public final class ContentFilters {
 	 * Data consumed by the content filter script in every page.
 	 */
 	@NonNull
-	public String scriptData() {
+	public synchronized String scriptData() {
+		// Settings and blocked channels bump the extension version; the watch list only matters
+		// when an entry crosses the threshold, which also changes how many ids qualify.
+		long version = extensionManager.version();
+		int watchCount = (int) watchStore.count();
+		if (cachedScriptData != null && version == cachedVersion && watchCount == cachedWatchCount
+						&& !watchDirty) {
+			return cachedScriptData;
+		}
+		watchDirty = false;
+		cachedVersion = version;
+		cachedWatchCount = watchCount;
+		cachedScriptData = buildScriptData();
+		return cachedScriptData;
+	}
+
+	private boolean watchDirty = true;
+
+	@NonNull
+	private String buildScriptData() {
 		JsonObject root = new JsonObject();
 		boolean grey = extensionManager.isEnabled(Constant.ENABLE_GREY_WATCHED);
 		root.addProperty("greyWatched", grey);

@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
+        android:id="@+id/action_export"
+        android:title="@string/backup_export"
+        android:showAsAction="never" />
+    <item
+        android:id="@+id/action_import"
+        android:title="@string/backup_import"
+        android:showAsAction="never" />
+    <item
         android:id="@+id/action_reset"
         android:title="@string/reset_all_settings"
         android:showAsAction="never" />

@@ -237,5 +237,39 @@
     <string name="nav_shorts">Shorts</string>
     <string name="nav_subscriptions">Subscriptions</string>
     <string name="nav_you">You</string>
+    <string name="play_next">Play next</string>
+    <string name="queue_item_play_next">Plays next</string>
+    <string name="queue_item_already_playing">This video is already playing</string>
+    <string name="quality_wifi">Quality on Wi-Fi</string>
+    <string name="quality_wifi_summary">Quality videos start in when connected to Wi-Fi</string>
+    <string name="quality_mobile">Quality on mobile data</string>
+    <string name="quality_mobile_summary">Quality videos start in when using mobile data</string>
+    <string name="quality_remembered">Last quality picked in the player</string>
+    <string name="quality_best">Best available</string>
+    <string name="sleep_timer">Sleep timer</string>
+    <string name="sleep_timer_summary">Pause playback after this video or at a set time</string>
+    <string name="sleep_timer_off">Off</string>
+    <string name="sleep_timer_end_of_video">After this video</string>
+    <string name="sleep_timer_pick_time">At a time…</string>
+    <string name="sleep_timer_at">Stops at %1$s</string>
+    <string name="sleep_timer_paused">Sleep timer: playback paused</string>
+    <string name="backup_export">Export settings and data</string>
+    <string name="backup_import">Import settings and data</string>
+    <string name="backup_exported">Backup saved</string>
+    <string name="backup_export_failed">Could not save the backup</string>
+    <string name="backup_import_failed">Could not import this file. %1$s</string>
+    <string name="backup_imported">Imported %1$d settings, %2$d blocked channels, %3$d watched videos and %4$d queue items.</string>
+    <string name="queue_list">Queue</string>
+    <string name="queue_list_summary">Videos waiting in the local queue</string>
+    <string name="queue_list_empty">The queue is empty.</string>
+    <string name="queue_list_tap_to_remove">Tap a video to remove it</string>
+    <string name="queue_list_clear">Clear all</string>
+    <string name="queue_list_cleared">Queue cleared</string>
+    <string name="queue_item_removed">Removed from the queue</string>
+    <plurals name="queue_list_count">
+        <item quantity="one">%d video</item>
+        <item quantity="other">%d videos</item>
+    </plurals>
+    <string name="no_suggestions">No suggested video to play next</string>
 </resources>
 

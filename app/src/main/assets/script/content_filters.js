@@ -167,7 +167,8 @@
     }
 
     function schedule() {
-        if (scheduled) return;
+        // Hidden tabs do no work; they refresh when they become visible again.
+        if (scheduled || document.visibilityState === "hidden") return;
         scheduled = true;
         setTimeout(apply, 150);
     }

@@ -41,6 +41,8 @@ import com.yutbe.app.player.queue.QueueRepository;
 import com.yutbe.app.ui.MainActivity;
 import com.yutbe.app.ui.widget.LoadingProgressBar;
 import com.yutbe.app.util.StreamIOUtils;
+import androidx.webkit.WebViewCompat;
+import androidx.webkit.WebViewFeature;
 import com.yutbe.app.util.ToastUtils;
 import com.yutbe.app.util.UrlUtils;
 import com.yutbe.app.util.ViewUtils;
@@ -251,6 +253,17 @@ public class YoutubeWebview extends WebView {
 	 * https, so other sites that end up in this WebView cannot use it.
 	 */
 	private volatile boolean trustedPage;
+	private static final java.util.Set<String> BRIDGE_ORIGINS = java.util.Set.of("https://youtube.com", "https://*.youtube.com");
+	/**
+	 * True when the page talks to the app through an origin-restricted message channel; false on
+	 * old WebView versions, which fall back to addJavascriptInterface.
+	 */
+	private boolean messageBridge;
+	@Nullable
+	private JavascriptInterface bridge;
+	@Nullable
+	private String bridgeShim;
+	private final com.yutbe.app.player.queue.QueueInvalidationListener queueListener = () -> post(this::pushBridgeState);
 
 	public boolean isTrustedPage() {
 		return trustedPage;
@@ -262,6 +275,9 @@ public class YoutubeWebview extends WebView {
 
 	public void setQueueRepository(@NonNull QueueRepository queueRepository) {
 		this.queueRepository = queueRepository;
+		if (isAttachedToWindow()) {
+			queueRepository.addListener(queueListener);
+		}
 	}
 
 	public void setPoTokenContextStore(@NonNull PoTokenContextStore poTokenContextStore) {
@@ -360,7 +376,26 @@ public class YoutubeWebview extends WebView {
 		settings.setUserAgentString("Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36");
 
 		JavascriptInterface jsInterface = new JavascriptInterface(this, youtubeExtractor, player, extensionManager, tabManager, queueRepository, Objects.requireNonNull(contentFilters));
-		addJavascriptInterface(jsInterface, "yutbe");
+		bridge = jsInterface;
+		if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
+			// Only YouTube pages get the channel, and only calls from the top frame are accepted,
+			// so ads and other embedded frames cannot reach the app.
+			WebViewCompat.addWebMessageListener(this, "yutbeBridge", BRIDGE_ORIGINS,
+							(view, message, sourceOrigin, isMainFrame, replyProxy) -> {
+								String data = message.getData();
+								if (!isMainFrame || !trustedPage || data == null || data.length() > 2_000_000) return;
+								jsInterface.dispatch(data);
+							});
+			try (java.io.InputStream in = getContext().getAssets().open("bridge/shim.js")) {
+				bridgeShim = StreamIOUtils.readInputStream(in);
+			} catch (java.io.IOException e) {
+				bridgeShim = null;
+			}
+			messageBridge = bridgeShim != null;
+		}
+		if (!messageBridge) {
+			addJavascriptInterface(jsInterface, "yutbe");
+		}
 		setTag(jsInterface);
 
 		setWebViewClient(new WebViewClient() {
@@ -394,6 +429,7 @@ public class YoutubeWebview extends WebView {
 			public void doUpdateVisitedHistory(@NonNull WebView view, @NonNull String url, boolean isReload) {
 				super.doUpdateVisitedHistory(view, url, isReload);
 				trustedPage = UrlUtils.isTrustedPageUrl(url);
+				pushBridgeState(url);
 				evaluateJavascript("window.dispatchEvent(new Event('doUpdateVisitedHistory'));", null);
 				if (updateVisitedHistory != null) updateVisitedHistory.accept(url);
 				post(YoutubeWebview.this::refreshPoTokenContext);
@@ -571,8 +607,39 @@ public class YoutubeWebview extends WebView {
 		});
 	}
 
+	/**
+	 * Sends the values the page reads synchronously (settings, filters, labels, queue state and
+	 * resume position) into the page.
+	 */
+	private void pushBridgeState() {
+		pushBridgeState(null);
+	}
+
+	private void pushBridgeState(@Nullable String url) {
+		JavascriptInterface target = bridge;
+		if (!messageBridge || target == null || !trustedPage) return;
+		String pageUrl = url != null ? url : frame.url != null ? frame.url : getUrl();
+		evaluateJavascript("window.__yutbeState=" + target.bridgeState(pageUrl) + ";", null);
+	}
+
+	@Override
+	protected void onAttachedToWindow() {
+		super.onAttachedToWindow();
+		if (queueRepository != null) queueRepository.addListener(queueListener);
+	}
+
+	@Override
+	protected void onDetachedFromWindow() {
+		if (queueRepository != null) queueRepository.removeListener(queueListener);
+		super.onDetachedFromWindow();
+	}
+
 	private void injectJavaScript(@Nullable String url) {
 		if (UrlUtils.isGoogleAccountsUrl(url)) return;
+		if (messageBridge && trustedPage && bridgeShim != null) {
+			pushBridgeState(url);
+			evaluateJavascript(bridgeShim, null);
+		}
 		for (String js : scripts) evaluateJavascript(js, null);
 	}
 
@@ -609,6 +676,7 @@ public class YoutubeWebview extends WebView {
 		long version = extensionManager.version();
 		if (version == prefVersion) return;
 		prefVersion = version;
+		pushBridgeState();
 		evaluateJavascript("window.dispatchEvent(new Event('yutbePreferencesChanged'));", null);
 	}
 

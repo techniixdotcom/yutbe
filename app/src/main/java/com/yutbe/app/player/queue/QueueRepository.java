@@ -11,9 +11,11 @@ import com.tencent.mmkv.MMKV;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 import javax.inject.Inject;
@@ -26,6 +28,7 @@ import javax.inject.Singleton;
 public final class QueueRepository {
 	static final String KEY_QUEUE_ITEMS = "local_queue_items";
 	static final String KEY_QUEUE_ENABLED = "local_queue_enabled";
+	static final String KEY_PLAY_NEXT = "local_queue_play_next";
 	private static final Type LIST_TYPE = new TypeToken<List<QueueItem>>() {
 	}.getType();
 
@@ -91,6 +94,85 @@ public final class QueueRepository {
 		notifyListeners();
 	}
 
+	/**
+	 * Appends items that are not in the queue yet, in one write.
+	 *
+	 * @return number of items added
+	 */
+	public int addMissing(@NonNull List<QueueItem> incoming) {
+		int added = 0;
+		synchronized (this) {
+			List<QueueItem> items = readItems();
+			for (QueueItem item : incoming) {
+				boolean present = false;
+				for (QueueItem existing : items) {
+					if (sameVideo(existing, item)) {
+						present = true;
+						break;
+					}
+				}
+				if (!present) {
+					items.add(item.copy());
+					added++;
+				}
+			}
+			if (added > 0) writeItems(items);
+		}
+		if (added > 0) notifyListeners();
+		return added;
+	}
+
+	/**
+	 * Puts an item right after the video that is playing now, or at the front of the queue when
+	 * the playing video is not part of it, so it plays next.
+	 *
+	 * @return false when the item is the video that is playing now
+	 */
+	public boolean addNext(@NonNull QueueItem item, @Nullable String playingVideoId) {
+		String videoId = item.getVideoId();
+		if (videoId == null || videoId.equals(playingVideoId)) return false;
+		synchronized (this) {
+			List<QueueItem> items = readItems();
+			items.removeIf(it -> sameVideo(it, item));
+			int playing = -1;
+			for (int i = 0; i < items.size(); i++) {
+				if (Objects.equals(items.get(i).getVideoId(), playingVideoId)) {
+					playing = i;
+					break;
+				}
+			}
+			items.add(playing >= 0 ? playing + 1 : 0, item.copy());
+			writeItems(items);
+			Set<String> pinned = readPlayNext();
+			pinned.add(videoId);
+			mmkv.encode(KEY_PLAY_NEXT, pinned);
+		}
+		notifyListeners();
+		return true;
+	}
+
+	/**
+	 * True for items added with "Play next" that have not been played yet. They are played
+	 * even if they were watched recently.
+	 */
+	public synchronized boolean isPlayNext(@Nullable String videoId) {
+		return videoId != null && readPlayNext().contains(videoId);
+	}
+
+	public synchronized void clearPlayNext(@Nullable String videoId) {
+		if (videoId == null) return;
+		Set<String> pinned = readPlayNext();
+		if (pinned.remove(videoId)) {
+			mmkv.encode(KEY_PLAY_NEXT, pinned);
+		}
+	}
+
+	@NonNull
+	private Set<String> readPlayNext() {
+		Set<String> stored = mmkv.decodeStringSet(KEY_PLAY_NEXT, null);
+		return stored == null ? new HashSet<>() : new HashSet<>(stored);
+	}
+
 	public boolean remove(@NonNull String videoId) {
 		boolean removed = false;
 		synchronized (this) {
@@ -145,6 +227,7 @@ public final class QueueRepository {
 	public void clear() {
 		synchronized (this) {
 			mmkv.removeValueForKey(KEY_QUEUE_ITEMS);
+			mmkv.removeValueForKey(KEY_PLAY_NEXT);
 		}
 		notifyListeners();
 	}

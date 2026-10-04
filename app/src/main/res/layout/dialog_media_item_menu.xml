@@ -85,6 +85,18 @@
                     app:tint="?attr/colorOnSurface" />
 
                 <ImageButton
+                    android:id="@+id/action_play_next"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:layout_marginStart="14dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/play_next"
+                    android:padding="7dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_queue_play_next"
+                    app:tint="?attr/colorOnSurface" />
+
+                <ImageButton
                     android:id="@+id/action_share"
                     android:layout_width="38dp"
                     android:layout_height="38dp"

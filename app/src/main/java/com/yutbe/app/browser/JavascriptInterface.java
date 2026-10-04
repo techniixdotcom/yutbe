@@ -17,6 +17,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 import com.yutbe.app.R;
 import com.yutbe.app.filter.ContentFilters;
@@ -295,6 +296,16 @@ public final class JavascriptInterface {
 	@android.webkit.JavascriptInterface
 	public void addToQueue(@Nullable String itemJson) {
 		if (!webView.isTrustedPage()) return;
+		enqueue(itemJson, false);
+	}
+
+	@android.webkit.JavascriptInterface
+	public void playNext(@Nullable String itemJson) {
+		if (!webView.isTrustedPage()) return;
+		enqueue(itemJson, true);
+	}
+
+	private void enqueue(@Nullable String itemJson, boolean next) {
 		if (itemJson == null) return;
 		handler.post(() -> {
 			try {
@@ -311,9 +322,16 @@ public final class JavascriptInterface {
 				if (!queueRepository.isEnabled()) {
 					queueRepository.setEnabled(true);
 				}
-				queueRepository.add(item);
+				if (next) {
+					if (!queueRepository.addNext(item, player.getVideoId())) {
+						ToastUtils.show(context, R.string.queue_item_already_playing);
+						return;
+					}
+				} else {
+					queueRepository.add(item);
+				}
 				player.refreshQueueNav();
-				ToastUtils.show(context, R.string.queue_item_added);
+				ToastUtils.show(context, next ? R.string.queue_item_play_next : R.string.queue_item_added);
 			} catch (Exception e) {
 				Log.e(TAG, "Failed to add queue item", e);
 			}
@@ -397,6 +415,11 @@ public final class JavascriptInterface {
 	@android.webkit.JavascriptInterface
 	public String getNavLabels() {
 		if (!webView.isTrustedPage()) return "{}";
+		return navLabelsJson();
+	}
+
+	@NonNull
+	private String navLabelsJson() {
 		JsonObject labels = new JsonObject();
 		labels.addProperty("home", context.getString(R.string.nav_home));
 		labels.addProperty("shorts", context.getString(R.string.nav_shorts));
@@ -432,4 +455,101 @@ public final class JavascriptInterface {
 		return player.getResumePosition(vid);
 	}
 
+
+	/**
+	 * Values the page reads synchronously, pushed into the page as window.__yutbeState when the
+	 * message bridge is used.
+	 */
+	@NonNull
+	String bridgeState(@Nullable String url) {
+		JsonObject state = new JsonObject();
+		state.addProperty("preferences", gson.toJson(extensionManager.getAllPreferences()));
+		state.addProperty("contentFilters", contentFilters.scriptData());
+		state.addProperty("navLabels", navLabelsJson());
+		state.addProperty("queueEnabled", queueRepository.isEnabled());
+		JsonObject resume = new JsonObject();
+		String videoId = YoutubeExtractor.getVideoId(url);
+		if (videoId != null) {
+			resume.addProperty(videoId, player.getResumePosition(videoId));
+		}
+		state.add("resume", resume);
+		return state.toString();
+	}
+
+	/**
+	 * Runs a call that the page sent through the message bridge. Only the names below can be
+	 * called, with their arguments type-checked.
+	 */
+	void dispatch(@NonNull String json) {
+		JsonObject message;
+		try {
+			JsonElement parsed = JsonParser.parseString(json);
+			if (!parsed.isJsonObject()) return;
+			message = parsed.getAsJsonObject();
+		} catch (RuntimeException e) {
+			return;
+		}
+		String name = argString(message.get("m"));
+		JsonElement rawArgs = message.get("a");
+		JsonArray args = rawArgs != null && rawArgs.isJsonArray() ? rawArgs.getAsJsonArray() : new JsonArray();
+		if (name == null) return;
+		switch (name) {
+			case "finishRefresh" -> finishRefresh();
+			case "setRefreshLayoutEnabled" -> setRefreshLayoutEnabled(argBoolean(args, 0));
+			case "download" -> {
+				if (args.isEmpty()) download();
+				else download(argString(args, 0));
+			}
+			case "downloadPlaylist" -> downloadPlaylist(argString(args, 0));
+			case "extension" -> extension();
+			case "about" -> about();
+			case "play" -> play(argString(args, 0));
+			case "showHint" -> showHint(argString(args, 0), argLong(args, 1));
+			case "hideHint" -> hideHint();
+			case "goBack" -> goBack();
+			case "addToQueue" -> addToQueue(argString(args, 0));
+			case "playNext" -> playNext(argString(args, 0));
+			case "openWith" -> openWith(argString(args, 0));
+			case "showMediaItemMenu" -> showMediaItemMenu(argString(args, 0));
+			case "showQueueItemUnavailable" -> showQueueItemUnavailable();
+			case "hidePlayer" -> hidePlayer();
+			case "setPlayerHeight" -> setPlayerHeight((int) argLong(args, 0));
+			case "onPosterLongPress" -> onPosterLongPress(argString(args, 0));
+			case "openTab" -> openTab(argString(args, 0), argString(args, 1));
+			case "seekLoadedVideo" -> {
+				String url = argString(args, 0);
+				if (url != null && !seekLoadedVideo(url, argLong(args, 1))) {
+					webView.loadUrl(url);
+				}
+			}
+			default -> {
+			}
+		}
+	}
+
+	@Nullable
+	private static String argString(@Nullable JsonElement element) {
+		if (element == null || !element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) return null;
+		return element.getAsString();
+	}
+
+	@Nullable
+	private static String argString(@NonNull JsonArray args, int index) {
+		return index < args.size() ? argString(args.get(index)) : null;
+	}
+
+	private static long argLong(@NonNull JsonArray args, int index) {
+		if (index >= args.size()) return 0L;
+		JsonElement element = args.get(index);
+		if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isNumber()) return 0L;
+		double value = element.getAsDouble();
+		if (Double.isNaN(value)) return 0L;
+		return (long) Math.max(Long.MIN_VALUE, Math.min(Long.MAX_VALUE, value));
+	}
+
+	private static boolean argBoolean(@NonNull JsonArray args, int index) {
+		if (index >= args.size()) return false;
+		JsonElement element = args.get(index);
+		return element.isJsonPrimitive() && element.getAsJsonPrimitive().isBoolean() && element.getAsBoolean();
+	}
 }

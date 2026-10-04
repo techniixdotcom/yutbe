@@ -38,6 +38,29 @@ import com.yutbe.app.util.ViewUtils;
 
 import java.util.ArrayList;
 
+import android.net.Uri;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+
+import com.google.android.material.timepicker.MaterialTimePicker;
+import com.google.android.material.timepicker.TimeFormat;
+import com.yutbe.app.backup.SettingsBackup;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
+
+import com.yutbe.app.player.common.SleepTimer;
+import com.yutbe.app.player.queue.QueueItem;
+import com.yutbe.app.player.queue.QueueRepository;
+import com.yutbe.app.util.ToastUtils;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.concurrent.Executor;
+
 import javax.inject.Inject;
 
 import dagger.hilt.android.AndroidEntryPoint;
@@ -54,6 +77,18 @@ public class ExtensionActivity extends AppCompatActivity {
 	ExtensionManager manager;
 	@Inject
 	ContentFilters contentFilters;
+	@Inject
+	SleepTimer sleepTimer;
+	@Inject
+	QueueRepository queueRepository;
+	@Inject
+	SettingsBackup settingsBackup;
+	@Inject
+	Executor executor;
+	private final ActivityResultLauncher<String> exportLauncher = registerForActivityResult(
+					new ActivityResultContracts.CreateDocument("application/json"), this::exportTo);
+	private final ActivityResultLauncher<String[]> importLauncher = registerForActivityResult(
+					new ActivityResultContracts.OpenDocument(), this::importFrom);
 	private final Deque<Extension> stack = new ArrayDeque<>();
 	private final Adapter adapter = new Adapter();
 	private Extension page;
@@ -98,7 +133,22 @@ public class ExtensionActivity extends AppCompatActivity {
 		showPage(Extension.root(), false);
 	}
 
+	@Override
+	protected void onResume() {
+		super.onResume();
+		// The sleep timer can switch itself off while this screen is in the background.
+		adapter.notifyDataSetChanged();
+	}
+
 	private boolean onMenuItemClick(@NonNull MenuItem item) {
+		if (item.getItemId() == R.id.action_export) {
+			exportLauncher.launch("yutbe-backup-" + LocalDate.now() + ".json");
+			return true;
+		}
+		if (item.getItemId() == R.id.action_import) {
+			importLauncher.launch(new String[]{"application/json", "text/plain", "application/octet-stream"});
+			return true;
+		}
 		if (item.getItemId() != R.id.action_reset) return false;
 		new MaterialAlertDialogBuilder(this)
 						.setTitle(R.string.reset_extension_title)
@@ -149,7 +199,7 @@ public class ExtensionActivity extends AppCompatActivity {
 		public int getItemViewType(int position) {
 			Extension item = items.get(position);
 			if (item.hasChildren()) return TYPE_NAV;
-			if (item.isPercent() || item.isAction()) return TYPE_VALUE;
+			if (item.isPercent() || item.isAction() || item.isChoice()) return TYPE_VALUE;
 			return TYPE_TOGGLE;
 		}
 
@@ -225,6 +275,183 @@ public class ExtensionActivity extends AppCompatActivity {
 			setLocked(itemView, false);
 			itemView.setOnClickListener(v -> open(item));
 		}
+	}
+
+	private void exportTo(@Nullable Uri uri) {
+		if (uri == null) return;
+		executor.execute(() -> {
+			boolean ok;
+			try (OutputStream out = getContentResolver().openOutputStream(uri, "wt")) {
+				if (out == null) throw new IOException("Cannot open " + uri);
+				settingsBackup.export(out);
+				ok = true;
+			} catch (IOException | RuntimeException e) {
+				ok = false;
+			}
+			boolean success = ok;
+			runOnUiThread(() -> ToastUtils.show(this, success ? R.string.backup_exported : R.string.backup_export_failed));
+		});
+	}
+
+	private void importFrom(@Nullable Uri uri) {
+		if (uri == null) return;
+		executor.execute(() -> {
+			SettingsBackup.Result result = null;
+			String error = null;
+			try (InputStream in = getContentResolver().openInputStream(uri)) {
+				if (in == null) throw new IOException("Cannot open " + uri);
+				result = settingsBackup.restore(in);
+			} catch (IOException | RuntimeException e) {
+				error = e.getMessage();
+			}
+			SettingsBackup.Result done = result;
+			String failure = error;
+			runOnUiThread(() -> {
+				if (isFinishing() || isDestroyed()) return;
+				adapter.notifyDataSetChanged();
+				if (done == null) {
+					new MaterialAlertDialogBuilder(this)
+									.setTitle(R.string.backup_import)
+									.setMessage(getString(R.string.backup_import_failed, failure == null ? "" : failure))
+									.setPositiveButton(R.string.confirm, null)
+									.show();
+					return;
+				}
+				new MaterialAlertDialogBuilder(this)
+								.setTitle(R.string.backup_import)
+								.setMessage(getString(R.string.backup_imported,
+												done.settings(), done.channels(), done.videos(), done.queued()))
+								.setPositiveButton(R.string.confirm, null)
+								.show();
+			});
+		});
+	}
+
+	@NonNull
+	private String qualityLabel(@NonNull String value) {
+		if (Constant.QUALITY_REMEMBERED.equals(value)) return getString(R.string.quality_remembered);
+		if (Constant.QUALITY_BEST.equals(value)) return getString(R.string.quality_best);
+		return value;
+	}
+
+	private void showQualityDialog(@NonNull Extension item) {
+		List<String> values = Constant.QUALITY_CHOICES;
+		String[] labels = new String[values.size()];
+		for (int i = 0; i < values.size(); i++) {
+			labels[i] = qualityLabel(values.get(i));
+		}
+		int checked = Math.max(0, values.indexOf(manager.getString(item.key())));
+		new MaterialAlertDialogBuilder(this)
+						.setTitle(item.title())
+						.setSingleChoiceItems(labels, checked, (d, which) -> {
+							manager.setString(item.key(), values.get(which));
+							adapter.notifyDataSetChanged();
+							d.dismiss();
+						})
+						.setNegativeButton(R.string.cancel, null)
+						.show();
+	}
+
+	/**
+	 * Lists the local queue; tapping a video removes it.
+	 */
+	private void showQueueDialog() {
+		List<QueueItem> items = new ArrayList<>(queueRepository.getItems());
+		if (items.isEmpty()) {
+			new MaterialAlertDialogBuilder(this)
+							.setTitle(R.string.queue_list)
+							.setMessage(R.string.queue_list_empty)
+							.setPositiveButton(R.string.confirm, null)
+							.show();
+			return;
+		}
+		List<String> labels = new ArrayList<>();
+		for (QueueItem item : items) {
+			labels.add(queueLabel(item));
+		}
+		ArrayAdapter<String> listAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, labels);
+		ListView list = new ListView(this);
+		list.setAdapter(listAdapter);
+		androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+						.setTitle(R.string.queue_list_tap_to_remove)
+						.setView(list)
+						.setPositiveButton(R.string.confirm, null)
+						.setNeutralButton(R.string.queue_list_clear, (d, w) -> {
+							queueRepository.clear();
+							adapter.notifyDataSetChanged();
+							ToastUtils.show(this, R.string.queue_list_cleared);
+						})
+						.setOnDismissListener(d -> adapter.notifyDataSetChanged())
+						.show();
+		list.setOnItemClickListener((parent, view, position, id) -> {
+			if (position < 0 || position >= items.size()) return;
+			QueueItem removed = items.remove(position);
+			if (removed.getVideoId() != null) {
+				queueRepository.remove(removed.getVideoId());
+			}
+			labels.remove(position);
+			listAdapter.notifyDataSetChanged();
+			ToastUtils.show(this, R.string.queue_item_removed);
+			if (items.isEmpty()) {
+				dialog.dismiss();
+			}
+		});
+	}
+
+	@NonNull
+	private String queueLabel(@NonNull QueueItem item) {
+		String title = item.getTitle() == null || item.getTitle().isBlank() ? item.getVideoId() : item.getTitle();
+		String author = item.getAuthor();
+		return author == null || author.isBlank() ? String.valueOf(title) : title + " · " + author;
+	}
+
+	@NonNull
+	private String sleepTimerSummary() {
+		return switch (sleepTimer.mode()) {
+			case END_OF_VIDEO -> getString(R.string.sleep_timer_end_of_video);
+			case AT_TIME -> getString(R.string.sleep_timer_at, String.valueOf(sleepTimer.stopAt()));
+			default -> getString(R.string.sleep_timer_off);
+		};
+	}
+
+	private void showSleepTimerDialog() {
+		String[] options = {
+						getString(R.string.sleep_timer_off),
+						getString(R.string.sleep_timer_end_of_video),
+						getString(R.string.sleep_timer_pick_time)
+		};
+		new MaterialAlertDialogBuilder(this)
+						.setTitle(R.string.sleep_timer)
+						.setItems(options, (d, which) -> {
+							if (which == 0) {
+								sleepTimer.cancel();
+								adapter.notifyDataSetChanged();
+							} else if (which == 1) {
+								sleepTimer.stopAfterThisVideo();
+								adapter.notifyDataSetChanged();
+							} else {
+								showSleepTimePicker();
+							}
+						})
+						.setNegativeButton(R.string.cancel, null)
+						.show();
+	}
+
+	private void showSleepTimePicker() {
+		LocalTime start = sleepTimer.stopAt() != null ? sleepTimer.stopAt() : LocalTime.now().plusHours(1);
+		MaterialTimePicker picker = new MaterialTimePicker.Builder()
+						.setTimeFormat(TimeFormat.CLOCK_24H)
+						.setHour(start.getHour())
+						.setMinute(start.getMinute())
+						.setTitleText(R.string.sleep_timer_pick_time)
+						.build();
+		picker.addOnPositiveButtonClickListener(v -> {
+			LocalTime time = LocalTime.of(picker.getHour(), picker.getMinute());
+			sleepTimer.stopAt(time);
+			adapter.notifyDataSetChanged();
+			ToastUtils.show(this, getString(R.string.sleep_timer_at, time.toString()));
+		});
+		picker.show(getSupportFragmentManager(), "sleep_timer_time");
 	}
 
 	private boolean isLockedByMinimize(@NonNull Extension item) {
@@ -320,6 +547,28 @@ public class ExtensionActivity extends AppCompatActivity {
 			title.setText(item.title());
 			icon.setVisibility(View.GONE);
 			summary.setVisibility(View.VISIBLE);
+			if (item.isChoice()) {
+				String description = item.summary() == 0 ? "" : getString(item.summary()) + "\n";
+				summary.setText(description + qualityLabel(manager.getString(item.key())));
+				chevron.setVisibility(View.GONE);
+				itemView.setOnClickListener(v -> showQualityDialog(item));
+				return;
+			}
+			if (Constant.ACTION_QUEUE.equals(item.key())) {
+				String description = item.summary() == 0 ? "" : getString(item.summary()) + "\n";
+				int count = queueRepository.getItems().size();
+				summary.setText(description + getResources().getQuantityString(R.plurals.queue_list_count, count, count));
+				chevron.setVisibility(View.VISIBLE);
+				itemView.setOnClickListener(v -> showQueueDialog());
+				return;
+			}
+			if (Constant.ACTION_SLEEP_TIMER.equals(item.key())) {
+				String description = item.summary() == 0 ? "" : getString(item.summary()) + "\n";
+				summary.setText(description + sleepTimerSummary());
+				chevron.setVisibility(View.VISIBLE);
+				itemView.setOnClickListener(v -> showSleepTimerDialog());
+				return;
+			}
 			if (item.isPercent()) {
 				String description = item.summary() == 0 ? "" : getString(item.summary()) + "\n";
 				summary.setText(description + getString(R.string.watched_threshold_value, manager.getInt(item.key())));

@@ -97,6 +97,10 @@ public final class MediaItemMenuDialog {
 			addToQueue();
 			dialog.dismiss();
 		});
+		view.findViewById(R.id.action_play_next).setOnClickListener(v -> {
+			dialog.dismiss();
+			playNext();
+		});
 		view.findViewById(R.id.action_share).setOnClickListener(v -> {
 			share();
 			dialog.dismiss();
@@ -183,6 +187,25 @@ public final class MediaItemMenuDialog {
 						})
 						.setNegativeButton(R.string.cancel, null)
 						.show();
+	}
+
+	private void playNext() {
+		QueueItem queueItem = item.toQueueItem();
+		String videoId = queueItem.getVideoId();
+		if (queueItem.getVideoUrl() == null || videoId == null || videoId.isBlank()
+						|| queueItem.getTitle() == null || queueItem.getTitle().isBlank()) {
+			ToastUtils.show(context, R.string.queue_item_unavailable);
+			return;
+		}
+		if (!queue.isEnabled()) {
+			queue.setEnabled(true);
+		}
+		if (!queue.addNext(queueItem, player.getVideoId())) {
+			ToastUtils.show(context, R.string.queue_item_already_playing);
+			return;
+		}
+		player.refreshQueueNav();
+		ToastUtils.show(context, R.string.queue_item_play_next);
 	}
 
 	private void addToQueue() {

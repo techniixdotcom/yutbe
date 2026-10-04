@@ -519,6 +519,15 @@ collect_apk() {
 	else
 		warn "apksigner not found, signature not verified"
 	fi
+	local aapt2 built
+	aapt2="$(find "$SDK_DIR/build-tools" -maxdepth 2 -name aapt2 -type f 2>/dev/null | sort -V | tail -n 1 || true)"
+	if [[ -n "$aapt2" ]]; then
+		built="$("$aapt2" dump badging "$out" 2>/dev/null | sed -n "s/.*versionName='\([^']*\)'.*/\1/p" | head -n 1 || true)"
+		[[ "$built" == "v$version" ]] || die "The APK reports version '$built' but app/build.gradle.kts says v$version"
+		log "APK version: $built"
+	fi
+	# Older APKs in dist only cause mix-ups, so only the current build is kept there.
+	find "$DIST_DIR" -maxdepth 1 -name 'yutbe*.apk' ! -name "$(basename "$out")" -delete 2>/dev/null || true
 	log "SHA-256: $(sha256_of "$out")"
 	log "Done. Your APK: $out"
 }
@@ -623,13 +632,18 @@ match_installed_key() {
 	fi
 }
 
+installed_version() {
+	"$(adb_bin)" shell dumpsys package "$APP_ID" 2>/dev/null | tr -d '\r' \
+		| sed -n 's/.*versionName=\(.*\)/\1/p' | head -n 1 || true
+}
+
 install_apk() {
 	device_ready || die "No phone found. Turn on USB debugging, connect the phone, accept the prompt on it and run again"
 	local output
 	log "Installing $APK_OUT"
 	output="$("$(adb_bin)" install -r "$APK_OUT" 2>&1 || true)"
 	if grep -q '^Success' <<< "$output"; then
-		log "Installed on the phone"
+		log "Installed on the phone: $(installed_version)"
 		return
 	fi
 	printf '%s\n' "$output"
@@ -639,7 +653,7 @@ install_apk() {
 			"$(adb_bin)" uninstall "$APP_ID" >/dev/null 2>&1 || true
 			output="$("$(adb_bin)" install "$APK_OUT" 2>&1 || true)"
 			grep -q '^Success' <<< "$output" || die "Installation failed: $output"
-			log "Installed on the phone"
+			log "Installed on the phone: $(installed_version)"
 			return
 		fi
 		die "The phone's YuTbe was signed with a different key. Run ./BUILD.sh --reinstall to replace it (its settings, history and login are lost)"

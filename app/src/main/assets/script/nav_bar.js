@@ -17,9 +17,41 @@
         { key: "home", href: "/" },
         { key: "shorts", href: "/shorts" },
         { key: "subscriptions", href: "/feed/subscriptions" },
-        { key: "you", href: "/feed/you" }
+        { key: "you", href: "/feed/library" }
     ];
+    const AVATAR_KEY = "yutbeAccountAvatar";
     let scheduled = false;
+
+    // YouTube's own bar shows the account picture on "You"; remember it so this bar can too.
+    function rememberAvatar() {
+        const pivot = document.querySelector("ytm-pivot-bar-renderer");
+        if (!pivot || !pivot.querySelector("ytm-pivot-bar-item-renderer")) return;
+        const image = pivot.querySelector("ytm-pivot-bar-item-renderer img[src]");
+        const src = image?.getAttribute("src") || "";
+        if (!image) {
+            // Signed out: YouTube's bar has no picture any more.
+            try {
+                localStorage.removeItem(AVATAR_KEY);
+            } catch {
+                // Storage can be unavailable.
+            }
+            return;
+        }
+        if (!/^https:\/\/(yt3\.ggpht\.com|yt3\.googleusercontent\.com|lh3\.googleusercontent\.com)\//.test(src)) return;
+        try {
+            if (localStorage.getItem(AVATAR_KEY) !== src) localStorage.setItem(AVATAR_KEY, src);
+        } catch {
+            // Storage can be unavailable; the plain icon is used then.
+        }
+    }
+
+    function avatar() {
+        try {
+            return localStorage.getItem(AVATAR_KEY) || "";
+        } catch {
+            return "";
+        }
+    }
 
     function preferences() {
         try {
@@ -50,6 +82,7 @@
             "#" + BAR_ID + " a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;" +
             "color:inherit!important;text-decoration:none!important;font-family:Roboto,Arial,sans-serif;font-size:10px;line-height:12px;gap:2px;}" +
             "#" + BAR_ID + " svg{width:24px;height:24px;fill:currentColor;}" +
+            "#" + BAR_ID + " img{width:24px;height:24px;border-radius:50%;object-fit:cover;}" +
             "#" + BAR_ID + " a[aria-current=\"page\"]{font-weight:500;}" +
             "html." + ROOT_CLASS + " body{padding-bottom:48px!important;}";
         target.appendChild(style);
@@ -88,15 +121,24 @@
             const link = document.createElement("a");
             link.href = item.href;
             link.dataset.key = item.key;
-            const svg = document.createElementNS(ns, "svg");
-            svg.setAttribute("viewBox", "0 0 24 24");
-            svg.setAttribute("aria-hidden", "true");
-            const path = document.createElementNS(ns, "path");
-            path.setAttribute("d", ICONS[item.key]);
-            svg.appendChild(path);
+            let icon;
+            const picture = item.key === "you" ? avatar() : "";
+            if (picture) {
+                icon = document.createElement("img");
+                icon.src = picture;
+                icon.alt = "";
+                icon.referrerPolicy = "no-referrer";
+            } else {
+                icon = document.createElementNS(ns, "svg");
+                icon.setAttribute("viewBox", "0 0 24 24");
+                icon.setAttribute("aria-hidden", "true");
+                const path = document.createElementNS(ns, "path");
+                path.setAttribute("d", ICONS[item.key]);
+                icon.appendChild(path);
+            }
             const label = document.createElement("span");
             label.textContent = text[item.key] || item.key;
-            link.append(svg, label);
+            link.append(icon, label);
             bar.appendChild(link);
         }
         return bar;
@@ -106,6 +148,7 @@
         scheduled = false;
         if (!document.body) return;
         ensureStyle();
+        rememberAvatar();
         let bar = document.getElementById(BAR_ID);
         if (!shouldShow()) {
             bar?.remove();
@@ -114,7 +157,8 @@
         }
         const hideShorts = !!preferences().enable_hide_shorts;
         const hasShorts = !!bar?.querySelector("a[data-key=\"shorts\"]");
-        if (bar && hasShorts === hideShorts) {
+        const shownAvatar = bar?.querySelector("a[data-key=\"you\"] img")?.getAttribute("src") || "";
+        if (bar && (hasShorts === hideShorts || shownAvatar !== avatar())) {
             bar.remove();
             bar = null;
         }
@@ -131,7 +175,7 @@
     }
 
     function schedule() {
-        if (scheduled) return;
+        if (scheduled || document.visibilityState === "hidden") return;
         scheduled = true;
         setTimeout(update, 200);
     }
@@ -150,6 +194,10 @@
     for (const name of ["yutbePreferencesChanged", "onPageFinished", "doUpdateVisitedHistory", "yt-navigate-finish", "state-navigateend", "resize"]) {
         window.addEventListener(name, schedule, true);
     }
+
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") schedule();
+    }, true);
 
     window.yutbeNavBar = { update: schedule };
     start();

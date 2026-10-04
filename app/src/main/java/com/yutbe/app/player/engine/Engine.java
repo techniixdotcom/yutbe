@@ -28,6 +28,7 @@ import androidx.media3.exoplayer.trackselection.AdaptiveTrackSelection;
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector;
 
 import com.yutbe.app.Constant;
+import com.yutbe.app.R;
 import com.yutbe.app.browser.TabManager;
 import com.yutbe.app.extractor.Delivery;
 import com.yutbe.app.extractor.DeliveryCatalog;
@@ -40,6 +41,8 @@ import com.yutbe.app.extractor.StreamCatalog;
 import com.yutbe.app.extractor.VideoDetails;
 import com.yutbe.app.extractor.YoutubeExtractor;
 import com.yutbe.app.filter.ContentFilters;
+import com.yutbe.app.player.common.SleepTimer;
+import com.yutbe.app.util.ToastUtils;
 import com.yutbe.app.player.YuTbePlayerView;
 import com.yutbe.app.player.common.PlayerLoopMode;
 import com.yutbe.app.player.common.PlayerPreferences;
@@ -112,6 +115,11 @@ public class Engine {
 			if (videoId != null && duration > 0) {
 				contentFilters.recordProgress(videoId, pos, duration);
 			}
+			if (sleepTimer.consumeTimeReached()) {
+				player.pause();
+				ToastUtils.show(appContext, R.string.sleep_timer_paused);
+				return;
+			}
 			// Persist playback progress. Once the end of the video is reached the saved position is
 			// dropped, so a finished video starts from the beginning when it is opened again.
 			if (videoId != null && duration > 0 && prefs.getExtensionManager().isEnabled(Constant.REMEMBER_LAST_POSITION)) {
@@ -160,7 +168,22 @@ public class Engine {
 	private final YoutubeExtractor extractor;
 	@NonNull
 	private final ContentFilters contentFilters;
+	@NonNull
+	private final SleepTimer sleepTimer;
+	@NonNull
+	private final Context appContext;
 	private int recoveries;
+	private static final int MAX_HISTORY = 50;
+	private static final int SUGGESTION_POOL = 5;
+	private static final int SUGGESTION_RETRIES = 4;
+	private static final long SUGGESTION_RETRY_DELAY_MS = 1500L;
+	/**
+	 * Videos played before the current one, newest last, for the previous button.
+	 */
+	@NonNull
+	private final java.util.ArrayDeque<String> history = new java.util.ArrayDeque<>();
+	@Nullable
+	private String returningToId;
 	private boolean watchedMarked;
 	private long autoplayToken;
 
@@ -173,9 +196,12 @@ public class Engine {
 	              @NonNull SponsorBlockManager sponsor,
 	              @NonNull QueueRepository queueRepository,
 	              @NonNull YoutubeExtractor extractor,
-	              @NonNull ContentFilters contentFilters) {
+	              @NonNull ContentFilters contentFilters,
+	              @NonNull SleepTimer sleepTimer) {
 		this.extractor = extractor;
 		this.contentFilters = contentFilters;
+		this.sleepTimer = sleepTimer;
+		this.appContext = context;
 		this.prefs = prefs;
 		this.tabManager = tabManager;
 		this.sponsor = sponsor;
@@ -206,13 +232,20 @@ public class Engine {
 						prefs.clearProgress(videoId);
 						contentFilters.recordProgress(videoId, 1L, 1L);
 					}
+					if (sleepTimer.consumeEndOfVideo()) {
+						removeFromQueue(videoId);
+						ToastUtils.show(appContext, R.string.sleep_timer_paused);
+						return;
+					}
 					if (isShortVideo()) {
 						player.seekTo(0);
 						player.play();
 						return;
 					}
 					if (loopMode.skipsToNextOnEnded()) {
-						skipToNext();
+						String endedId = videoId;
+						skipToNext(false);
+						removeFromQueue(endedId);
 						return;
 					}
 					if (loopMode.selectsRandomPlaylistItemOnEnded()) {
@@ -278,6 +311,16 @@ public class Engine {
 	}
 
 	/**
+	 * A queued video leaves the queue once it has been played, whether it ran to the end or was
+	 * skipped.
+	 */
+	private void removeFromQueue(@Nullable String id) {
+		if (id != null && queueRepository.containsVideo(id)) {
+			queueRepository.remove(id);
+		}
+	}
+
+	/**
 	 * Length of the tail of a video after which it counts as watched.
 	 */
 	static long watchedTailMs(long durationMs) {
@@ -294,8 +337,35 @@ public class Engine {
 		return (DefaultTrackSelector) Objects.requireNonNull(player.getTrackSelector());
 	}
 
-	static boolean didNavigate(@Nullable String value) {
-		return "\"navigating\"".equals(value);
+	/**
+	 * Returns the URL a playlist script picked ("navigate:<url>"), or null.
+	 */
+	@Nullable
+	static String navigationTarget(@Nullable String value) {
+		if (value == null) return null;
+		String decoded;
+		try {
+			com.google.gson.JsonElement parsed = com.google.gson.JsonParser.parseString(value);
+			if (!parsed.isJsonPrimitive() || !parsed.getAsJsonPrimitive().isString()) return null;
+			decoded = parsed.getAsString();
+		} catch (RuntimeException e) {
+			return null;
+		}
+		String prefix = "navigate:";
+		if (!decoded.startsWith(prefix)) return null;
+		String url = decoded.substring(prefix.length());
+		return UrlUtils.isTrustedPageUrl(url) ? url : null;
+	}
+
+	/**
+	 * Plays the video a playlist script picked. The player is told directly instead of letting
+	 * the page navigate, so it also works while the video sits in the mini player or the bar.
+	 */
+	private boolean playNavigationTarget(@Nullable String value) {
+		String url = navigationTarget(value);
+		if (url == null) return false;
+		tabManager.playInWatch(url);
+		return true;
 	}
 
 	@Nullable
@@ -333,8 +403,7 @@ public class Engine {
 						const targetVideo=playlistContents[targetIndex]?.playlistPanelVideoRenderer;
 						const targetUrl=targetVideo?.navigationEndpoint?.commandMetadata?.webCommandMetadata?.url;
 						if(typeof targetUrl !== 'string' || targetUrl.length === 0) return 'missing-target-url';
-						location.href = new URL(targetUrl, location.origin).toString();
-						return 'navigating';
+						return 'navigate:' + new URL(targetUrl, location.origin).toString();
 						})();
 						""".replace("__NEXT_NAVIGATION__", Boolean.toString(nextNavigation));
 	}
@@ -357,8 +426,7 @@ public class Engine {
 						const targetVideo=playlistContents[targetIndex]?.playlistPanelVideoRenderer;
 						const targetUrl=targetVideo?.navigationEndpoint?.commandMetadata?.webCommandMetadata?.url;
 						if(typeof targetUrl !== 'string' || targetUrl.length === 0) return 'missing-target-url';
-						location.href = new URL(targetUrl, location.origin).toString();
-						return 'navigating';
+						return 'navigate:' + new URL(targetUrl, location.origin).toString();
 						})();
 						""";
 	}
@@ -382,6 +450,14 @@ public class Engine {
 		PlaybackPlan plan = details.plan();
 		List<SubtitlesStream> subtitles = details.subtitles();
 		if (!Objects.equals(this.videoId, video.getId())) {
+			if (Objects.equals(returningToId, video.getId())) {
+				returningToId = null;
+			} else if (this.videoId != null && !this.videoId.equals(history.peekLast())) {
+				history.addLast(this.videoId);
+				while (history.size() > MAX_HISTORY) history.removeFirst();
+			}
+			// Leaving a queued video (watched to the end or skipped) takes it out of the queue.
+			removeFromQueue(this.videoId);
 			failedAdaptiveCandidates.clear();
 			failedClients.clear();
 			recoveries = 0;
@@ -389,6 +465,7 @@ public class Engine {
 		}
 		watchedMarked = false;
 		prefs.recordPlayed(video.getId());
+		queueRepository.clearPlayNext(video.getId());
 		this.videoId = video.getId();
 		this.videoDetails = video;
 		this.streamCatalog = details.catalog();
@@ -617,6 +694,14 @@ public class Engine {
 	}
 
 	public void skipToNext() {
+		skipToNext(true);
+	}
+
+	/**
+	 * @param manual true when the user asked for the next video (button, notification, bar);
+	 *               false when the current video ended on its own
+	 */
+	public void skipToNext(boolean manual) {
 		boolean queueEnabled = queueRepository.isEnabled();
 		boolean hasQueueItems = queueRepository.hasItems();
 		String watchId = watchVideoId();
@@ -630,51 +715,154 @@ public class Engine {
 			// example from an autoplayed suggestion) the queue is only re-entered with a video that
 			// has not been played recently, otherwise finished queues would loop forever.
 			if (item != null && item.getVideoUrl() != null
-							&& (inQueue || !prefs.wasRecentlyPlayed(item.getVideoId()))) {
+							&& (inQueue
+							|| queueRepository.isPlayNext(item.getVideoId())
+							|| !prefs.wasRecentlyPlayed(item.getVideoId()))) {
 				tabManager.playInWatch(item.getVideoUrl());
 				return;
 			}
-			autoplaySuggestion(watchId);
+			autoplaySuggestion(watchId, manual);
 			return;
 		}
 		if (playlistContext) {
 			this.tabManager.evalWatchJs(
 							buildPlaylistNavigationScript(1),
 							value -> {
+								if (playNavigationTarget(value)) return;
 								if ("\"playlist-end\"".equals(value)) {
-									autoplaySuggestion(watchId);
+									autoplaySuggestion(watchId, manual);
 								}
 							});
 			return;
 		}
-		autoplaySuggestion(watchId);
+		autoplaySuggestion(watchId, manual);
 	}
 
 	/**
 	 * Plays the first suggestion of the given video that has not been played recently, the same
 	 * way YouTube continues with "Up next" once nothing else is queued.
 	 */
-	private void autoplaySuggestion(@Nullable String fromId) {
-		if (!prefs.isAutoplaySuggestionsEnabled()) return;
+	/**
+	 * Reads the suggestions the watch page itself shows: YouTube's own "up next" pick first,
+	 * then the suggested videos in page order. Videos of blocked channels and Shorts are left
+	 * out. Returns {"page": video id of the page, "ready": fully loaded, "ids": [...]}, so
+	 * suggestions of a page that is still loading or shows another video are not used.
+	 */
+	private static final String PAGE_SUGGESTIONS_SCRIPT = """
+					(function(){
+					const current=new URL(location.href).searchParams.get('v');
+					const ids=[];
+					const add=id=>{ if(typeof id==='string' && /^[A-Za-z0-9_-]{11}$/.test(id) && id!==current && !ids.includes(id)) ids.push(id); };
+					try {
+					const data=globalThis.ytInitialData;
+					if (data?.currentVideoEndpoint?.watchEndpoint?.videoId===current) {
+					add(data?.contents?.singleColumnWatchNextResults?.autoplay?.autoplay?.sets?.[0]?.autoplayVideo?.watchEndpoint?.videoId);
+					add(data?.playerOverlays?.playerOverlayRenderer?.autoplay?.playerOverlayAutoplayRenderer?.videoId);
+					}
+					} catch (e) {}
+					for (const link of document.querySelectorAll('a[href*="/watch"]')) {
+					if (link.closest('[data-yutbe-blocked="true"], ytm-playlist-panel-renderer, ytm-engagement-panel-section-list-renderer, ytm-comment-thread-renderer, ytm-shorts-lockup-view-model, ytm-reel-item-renderer, #yutbe-nav-bar')) continue;
+					try { add(new URL(link.getAttribute('href'), location.origin).searchParams.get('v')); } catch (e) {}
+					if (ids.length>=40) break;
+					}
+					return JSON.stringify({page: current, ready: document.readyState === 'complete', ids: ids});
+					})();
+					""";
+
+	/**
+	 * Parses the result of the page suggestions script. Returns an empty list unless the page
+	 * has finished loading and shows the expected video.
+	 */
+	@NonNull
+	private static List<String> parsePageSuggestions(@Nullable String value, @NonNull String expectedVideoId) {
+		List<String> ids = new ArrayList<>();
+		if (value == null) return ids;
+		try {
+			com.google.gson.JsonElement outer = com.google.gson.JsonParser.parseString(value);
+			if (!outer.isJsonPrimitive() || !outer.getAsJsonPrimitive().isString()) return ids;
+			com.google.gson.JsonElement inner = com.google.gson.JsonParser.parseString(outer.getAsString());
+			if (!inner.isJsonObject()) return ids;
+			com.google.gson.JsonObject result = inner.getAsJsonObject();
+			com.google.gson.JsonElement page = result.get("page");
+			com.google.gson.JsonElement ready = result.get("ready");
+			com.google.gson.JsonElement list = result.get("ids");
+			if (page == null || !page.isJsonPrimitive() || !expectedVideoId.equals(page.getAsString())) return ids;
+			if (ready == null || !ready.isJsonPrimitive() || !ready.getAsBoolean()) return ids;
+			if (list == null || !list.isJsonArray()) return ids;
+			for (com.google.gson.JsonElement element : list.getAsJsonArray()) {
+				if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isString()) {
+					String id = element.getAsString();
+					if (ContentFilters.isVideoId(id)) ids.add(id);
+				}
+			}
+		} catch (RuntimeException ignored) {
+			ids.clear();
+		}
+		return ids;
+	}
+
+
+	/**
+	 * Plays the next suggested video, like YouTube's autoplay. Suggestions come from the watch
+	 * page first and from the extractor when the page has none.
+	 *
+	 * @param manual true when the user pressed next; false when the video ended on its own
+	 */
+	private void autoplaySuggestion(@Nullable String fromId, boolean manual) {
+		if (!manual && !prefs.isAutoplaySuggestionsEnabled()) return;
 		String sourceId = fromId != null ? fromId : videoId;
 		if (sourceId == null) return;
 		long token = ++autoplayToken;
-		extractor.getRelatedVideoIds(sourceId).whenComplete((ids, error) -> handler.post(() -> {
-			if (token != autoplayToken) return;
-			if (error != null || ids == null) {
-				Log.w(TAG, "suggestions unavailable videoId=" + sourceId, error);
-				return;
-			}
-			// The user navigated somewhere else in the meantime.
-			if (!Objects.equals(sourceId, watchVideoId())) return;
-			for (String id : ids) {
-				if (id == null || id.equals(sourceId) || prefs.wasRecentlyPlayed(id)) continue;
-				tabManager.playInWatch(Constant.HOME_URL + "/watch?v=" + id);
-				return;
-			}
-			Log.i(TAG, "no unwatched suggestion videoId=" + sourceId);
-		}));
+		requestSuggestions(sourceId, manual, token, 0);
 	}
+
+	private void requestSuggestions(@NonNull String sourceId, boolean manual, long token, int attempt) {
+		tabManager.evalWatchJs(PAGE_SUGGESTIONS_SCRIPT, value -> {
+			if (token != autoplayToken) return;
+			List<String> pageIds = parsePageSuggestions(value, sourceId);
+			if (!pageIds.isEmpty()) {
+				playSuggestion(sourceId, pageIds, manual);
+				return;
+			}
+			extractor.getRelatedVideoIds(sourceId).whenComplete((ids, error) -> handler.post(() -> {
+				if (token != autoplayToken) return;
+				if (error != null) Log.w(TAG, "suggestions unavailable videoId=" + sourceId, error);
+				if ((ids == null || ids.isEmpty()) && attempt < SUGGESTION_RETRIES) {
+					// The watch page may still be loading its suggestions; try again shortly.
+					handler.postDelayed(() -> {
+						if (token == autoplayToken) requestSuggestions(sourceId, manual, token, attempt + 1);
+					}, SUGGESTION_RETRY_DELAY_MS);
+					return;
+				}
+				playSuggestion(sourceId, ids == null ? List.of() : ids, manual);
+			}));
+		});
+	}
+
+	private void playSuggestion(@NonNull String sourceId, @NonNull List<String> ids, boolean manual) {
+		// The user moved on to another video in the meantime.
+		if (!Objects.equals(sourceId, watchVideoId())) return;
+		// Pick at random among the top suggestions, preferring ones not watched in the last day,
+		// so autoplay wanders through similar videos instead of walking down one list.
+		List<String> fresh = new ArrayList<>();
+		List<String> any = new ArrayList<>();
+		for (String id : ids) {
+			if (id == null || id.equals(sourceId) || any.contains(id)) continue;
+			if (any.size() < SUGGESTION_POOL) any.add(id);
+			if (fresh.size() < SUGGESTION_POOL && !prefs.wasRecentlyPlayed(id)) fresh.add(id);
+			if (fresh.size() >= SUGGESTION_POOL) break;
+		}
+		List<String> pool = !fresh.isEmpty() ? fresh : any;
+		if (pool.isEmpty()) {
+			Log.i(TAG, "no suggestion videoId=" + sourceId);
+			if (manual) ToastUtils.show(appContext, R.string.no_suggestions);
+			return;
+		}
+		String pick = pool.get(java.util.concurrent.ThreadLocalRandom.current().nextInt(pool.size()));
+		tabManager.playInWatch(Constant.HOME_URL + "/watch?v=" + pick);
+	}
+
+
 
 	public void skipToPrevious() {
 		boolean queueEnabled = queueRepository.isEnabled();
@@ -682,47 +870,43 @@ public class Engine {
 		String watchId = watchVideoId();
 		boolean inQueue = queueRepository.containsVideo(watchId);
 		boolean hasPlaylist = tabManager.watchHasPlaylist();
-		boolean canGoBack = tabManager.canGoBackInWatch();
 		boolean queueContext = queueEnabled && hasQueueItems;
 		boolean playlistContext = !queueContext && hasPlaylist;
-		if (queueContext) {
-			if (!inQueue) {
-				if (canGoBack) {
-					tabManager.goBackInWatch();
-				}
-				return;
-			}
+		if (queueContext && inQueue) {
 			QueueItem item = queueRepository.findRelative(watchId, -1);
 			if (item != null && item.getVideoUrl() != null) {
 				tabManager.playInWatch(item.getVideoUrl());
 				return;
 			}
-			if (canGoBack) {
-				tabManager.goBackInWatch();
-			}
-			return;
 		}
 		if (playlistContext) {
-			tabManager.evalWatchJs(
-							buildPlaylistNavigationScript(-1),
-							value -> {
-								if (didNavigate(value)) return;
-								if ("\"playlist-head\"".equals(value)) {
-									if (canGoBack) tabManager.goBackInWatch();
-									return;
-								}
-								if ("\"missing-playlist\"".equals(value)
-												|| "\"missing-current-video-id\"".equals(value)
-												|| "\"missing-current-video\"".equals(value)) {
-									if (canGoBack) tabManager.goBackInWatch();
-								}
-							});
+			tabManager.evalWatchJs(buildPlaylistNavigationScript(-1), value -> {
+				if (!playNavigationTarget(value)) playPreviousFromHistory();
+			});
 			return;
 		}
-		if (canGoBack) {
+		playPreviousFromHistory();
+	}
+
+	/**
+	 * Goes back to the video played before this one. Works the same in the full player, the
+	 * mini player and the bottom bar because the player is told directly.
+	 */
+	private void playPreviousFromHistory() {
+		String previous = history.pollLast();
+		while (previous != null && previous.equals(videoId)) {
+			previous = history.pollLast();
+		}
+		if (previous != null) {
+			returningToId = previous;
+			tabManager.playInWatch(Constant.HOME_URL + "/watch?v=" + previous);
+			return;
+		}
+		if (tabManager.canGoBackInWatch()) {
 			tabManager.goBackInWatch();
 		}
 	}
+
 
 	public void playRandomPlaylistItem() {
 		boolean queueEnabled = queueRepository.isEnabled();
@@ -739,7 +923,7 @@ public class Engine {
 			return;
 		}
 		if (playlistContext) {
-			this.tabManager.evalWatchJs(buildRandomPlaylistNavigationScript(), null);
+			this.tabManager.evalWatchJs(buildRandomPlaylistNavigationScript(), this::playNavigationTarget);
 		}
 	}
 
@@ -750,7 +934,7 @@ public class Engine {
 		String watchId = watchVideoId();
 		boolean inQueue = queueRepository.containsVideo(watchId);
 		boolean hasPlaylist = tabManager.watchHasPlaylist();
-		boolean canGoBack = tabManager.canGoBackInWatch();
+		boolean canGoBack = !history.isEmpty() || tabManager.canGoBackInWatch();
 		boolean playlistAtHead = UrlUtils.isPlaylistFirstItemUrl(tabManager.getWatchUrl());
 		boolean queueContext = queueEnabled && hasQueueItems;
 		boolean playlistContext = !queueContext && hasPlaylist;
@@ -764,7 +948,7 @@ public class Engine {
 			boolean playlistPrevEnabled = !playlistAtHead || canGoBack;
 			return new QueueNav(false, true, true, false, playlistPrevEnabled);
 		}
-		return new QueueNav(false, prefs.isAutoplaySuggestionsEnabled(), false, false, canGoBack);
+		return new QueueNav(false, true, false, false, canGoBack);
 	}
 
 	@Nullable
