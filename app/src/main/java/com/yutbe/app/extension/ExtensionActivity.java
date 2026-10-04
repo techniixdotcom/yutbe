@@ -49,11 +49,7 @@ import com.yutbe.app.backup.SettingsBackup;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
-import android.text.format.DateUtils;
-
-import com.yutbe.app.history.WatchHistory;
 import com.yutbe.app.player.common.SleepTimer;
-import com.yutbe.app.ui.MainActivity;
 import com.yutbe.app.player.queue.QueueItem;
 import com.yutbe.app.player.queue.QueueRepository;
 import com.yutbe.app.util.ToastUtils;
@@ -77,6 +73,7 @@ public class ExtensionActivity extends AppCompatActivity {
 	private static final int TYPE_NAV = 0;
 	private static final int TYPE_TOGGLE = 1;
 	private static final int TYPE_VALUE = 2;
+
 	@Inject
 	ExtensionManager manager;
 	@Inject
@@ -85,8 +82,7 @@ public class ExtensionActivity extends AppCompatActivity {
 	SleepTimer sleepTimer;
 	@Inject
 	QueueRepository queueRepository;
-	@Inject
-	WatchHistory watchHistory;
+
 	@Inject
 	SettingsBackup settingsBackup;
 	@Inject
@@ -404,53 +400,6 @@ public class ExtensionActivity extends AppCompatActivity {
 		});
 	}
 
-	/**
-	 * Lists played videos, newest first; tapping one plays it.
-	 */
-	private void showWatchHistoryDialog() {
-		List<WatchHistory.Entry> entries = watchHistory.entries();
-		if (entries.isEmpty()) {
-			new MaterialAlertDialogBuilder(this)
-							.setTitle(R.string.watch_history)
-							.setMessage(R.string.watch_history_empty)
-							.setPositiveButton(R.string.confirm, null)
-							.show();
-			return;
-		}
-		long now = System.currentTimeMillis();
-		String[] labels = new String[entries.size()];
-		for (int i = 0; i < entries.size(); i++) {
-			WatchHistory.Entry entry = entries.get(i);
-			String title = entry.title() == null || entry.title().isBlank() ? entry.videoId() : entry.title();
-			CharSequence when = DateUtils.getRelativeTimeSpanString(entry.watchedAt(), now, DateUtils.MINUTE_IN_MILLIS);
-			String author = entry.author() == null || entry.author().isBlank() ? "" : entry.author() + " · ";
-			labels[i] = title + "\n" + author + when;
-		}
-		new MaterialAlertDialogBuilder(this)
-						.setTitle(R.string.watch_history_tap_to_play)
-						.setItems(labels, (d, which) -> playFromHistory(entries.get(which).videoId()))
-						.setNegativeButton(R.string.cancel, null)
-						.setNeutralButton(R.string.watch_history_clear, (d, w) -> new MaterialAlertDialogBuilder(this)
-										.setTitle(R.string.watch_history_clear)
-										.setMessage(R.string.watch_history_clear_confirm)
-										.setPositiveButton(R.string.watch_history_clear, (d2, w2) -> {
-											watchHistory.clear();
-											adapter.notifyDataSetChanged();
-										})
-										.setNegativeButton(R.string.cancel, null)
-										.show())
-						.show();
-	}
-
-	private void playFromHistory(@NonNull String videoId) {
-		Intent intent = new Intent(Intent.ACTION_VIEW,
-						Uri.parse(com.yutbe.app.Constant.HOME_URL + "/watch?v=" + videoId),
-						this, MainActivity.class);
-		intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-		startActivity(intent);
-		finish();
-	}
-
 	@NonNull
 	private String queueLabel(@NonNull QueueItem item) {
 		String title = item.getTitle() == null || item.getTitle().isBlank() ? item.getVideoId() : item.getTitle();
@@ -605,14 +554,6 @@ public class ExtensionActivity extends AppCompatActivity {
 				summary.setText(description + qualityLabel(manager.getString(item.key())));
 				chevron.setVisibility(View.GONE);
 				itemView.setOnClickListener(v -> showQualityDialog(item));
-				return;
-			}
-			if (Constant.ACTION_WATCH_HISTORY.equals(item.key())) {
-				String description = item.summary() == 0 ? "" : getString(item.summary()) + "\n";
-				int count = watchHistory.entries().size();
-				summary.setText(description + getResources().getQuantityString(R.plurals.queue_list_count, count, count));
-				chevron.setVisibility(View.VISIBLE);
-				itemView.setOnClickListener(v -> showWatchHistoryDialog());
 				return;
 			}
 			if (Constant.ACTION_QUEUE.equals(item.key())) {

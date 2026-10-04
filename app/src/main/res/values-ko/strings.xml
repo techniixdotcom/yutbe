@@ -257,10 +257,7 @@
     <string name="queue_list_cleared">대기열을 비웠습니다</string>
     <string name="queue_item_removed">대기열에서 삭제했습니다</string>
     <string name="no_suggestions">다음에 재생할 추천 동영상이 없습니다</string>
-    <string name="watch_history">시청 기록</string>
-    <string name="watch_history_summary">YuTbe에서 재생한 동영상, 최신순</string>
     <string name="watch_history_empty">아직 재생한 동영상이 없습니다.</string>
-    <string name="watch_history_tap_to_play">동영상을 탭하여 재생</string>
     <string name="watch_history_clear">기록 지우기</string>
     <string name="watch_history_clear_confirm">시청 기록에서 모든 동영상을 삭제할까요?</string>
     <string name="hide_subscriptions">구독 탭 숨기기</string>
@@ -287,4 +284,10 @@
     <string name="update_settings">설정</string>
     <string name="update_no_apk">YuTbe %1$s을(를) 사용할 수 있지만 릴리스에 APK가 첨부되어 있지 않습니다. 릴리스 페이지를 열까요?</string>
     <string name="update_open_page">페이지 열기</string>
+    <string name="update_ready_title">업데이트 다운로드 완료</string>
+    <string name="update_ready_message">YuTbe %1$s 준비가 완료되었습니다. 지금 설치할까요?</string>
+    <string name="view_all">모두 보기</string>
+    <string name="local_history">로컬 기록</string>
+    <string name="local_history_remove">로컬 기록에서 삭제</string>
+    <string name="local_history_removed">로컬 기록에서 삭제했습니다</string>
 </resources>

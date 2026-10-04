@@ -15,7 +15,8 @@
     for (const name of [
         "finishRefresh", "setRefreshLayoutEnabled", "download", "downloadPlaylist", "extension", "about",
         "play", "showHint", "hideHint", "goBack", "addToQueue", "playNext", "openWith", "showMediaItemMenu",
-        "showQueueItemUnavailable", "hidePlayer", "setPlayerHeight", "onPosterLongPress", "openTab"
+        "showQueueItemUnavailable", "hidePlayer", "setPlayerHeight", "onPosterLongPress", "openTab",
+        "openWatchHistory"
     ]) {
         api[name] = (...args) => send(name, args);
     }
@@ -26,6 +27,7 @@
     api.getPreferences = () => state().preferences || "{}";
     api.getContentFilters = () => state().contentFilters || "{}";
     api.getNavLabels = () => state().navLabels || "{}";
+    api.getWatchLog = () => state().watchLog || "{}";
     api.isQueueEnabled = () => !!state().queueEnabled;
     api.getResumePosition = (videoId) => Number(state().resume?.[videoId]) || 0;
 

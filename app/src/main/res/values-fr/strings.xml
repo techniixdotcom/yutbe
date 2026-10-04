@@ -257,10 +257,7 @@
     <string name="queue_list_cleared">File d\'attente vidée</string>
     <string name="queue_item_removed">Retirée de la file d\'attente</string>
     <string name="no_suggestions">Aucune vidéo suggérée à lire ensuite</string>
-    <string name="watch_history">Historique des vidéos regardées</string>
-    <string name="watch_history_summary">Vidéos lues dans YuTbe, les plus récentes en premier</string>
     <string name="watch_history_empty">Aucune vidéo lue pour l\'instant.</string>
-    <string name="watch_history_tap_to_play">Appuyez sur une vidéo pour la lire</string>
     <string name="watch_history_clear">Effacer l\'historique</string>
     <string name="watch_history_clear_confirm">Retirer toutes les vidéos de l\'historique ?</string>
     <string name="hide_subscriptions">Masquer l\'onglet Abonnements</string>
@@ -289,4 +286,10 @@
     <string name="update_settings">Paramètres</string>
     <string name="update_no_apk">YuTbe %1$s est disponible, mais la version ne contient pas d\'APK. Ouvrir la page de la version ?</string>
     <string name="update_open_page">Ouvrir la page</string>
+    <string name="update_ready_title">Mise à jour téléchargée</string>
+    <string name="update_ready_message">YuTbe %1$s est prête. L\'installer maintenant ?</string>
+    <string name="view_all">Tout afficher</string>
+    <string name="local_history">Historique local</string>
+    <string name="local_history_remove">Retirer de l\'historique local</string>
+    <string name="local_history_removed">Retirée de l\'historique local</string>
 </resources>

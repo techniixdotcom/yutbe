@@ -307,9 +307,13 @@ public final class YoutubeHttpDataSource extends BaseDataSource implements HttpD
 		requestHeaders.putAll(requestProperties.getSnapshot());
 		requestHeaders.putAll(requestParameters);
 
-		String cookies = CookieManager.getInstance().getCookie(requestUrl);
-		if (cookies != null && !cookies.isEmpty())
-			requestHeaders.put(HttpHeaders.COOKIE, cookies);
+		// Cookies only go to YouTube's own video and site hosts.
+		String host = Uri.parse(requestUrl).getHost();
+		if (host != null && (host.endsWith(".googlevideo.com") || host.equals("youtube.com") || host.endsWith(".youtube.com"))) {
+			String cookies = CookieManager.getInstance().getCookie(requestUrl);
+			if (cookies != null && !cookies.isEmpty())
+				requestHeaders.put(HttpHeaders.COOKIE, cookies);
+		}
 
 		for (final Map.Entry<String, String> property : requestHeaders.entrySet())
 			conn.setRequestProperty(property.getKey(), property.getValue());

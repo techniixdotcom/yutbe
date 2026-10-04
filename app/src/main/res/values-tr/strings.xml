@@ -259,10 +259,7 @@
     <string name="queue_list_cleared">Sıra temizlendi</string>
     <string name="queue_item_removed">Sıradan kaldırıldı</string>
     <string name="no_suggestions">Sırada oynatılacak önerilen video yok</string>
-    <string name="watch_history">İzleme geçmişi</string>
-    <string name="watch_history_summary">YuTbe\'de oynatılan videolar, en yeniler önce</string>
     <string name="watch_history_empty">Henüz oynatılan video yok.</string>
-    <string name="watch_history_tap_to_play">Oynatmak için bir videoya dokunun</string>
     <string name="watch_history_clear">Geçmişi temizle</string>
     <string name="watch_history_clear_confirm">Tüm videolar izleme geçmişinden kaldırılsın mı?</string>
     <string name="hide_subscriptions">Abonelikler sekmesini gizle</string>
@@ -291,4 +288,10 @@
     <string name="update_settings">Ayarlar</string>
     <string name="update_no_apk">YuTbe %1$s mevcut ancak sürüme APK eklenmemiş. Sürüm sayfası açılsın mı?</string>
     <string name="update_open_page">Sayfayı aç</string>
+    <string name="update_ready_title">Güncelleme indirildi</string>
+    <string name="update_ready_message">YuTbe %1$s hazır. Şimdi yüklensin mi?</string>
+    <string name="view_all">Tümünü göster</string>
+    <string name="local_history">Yerel geçmiş</string>
+    <string name="local_history_remove">Yerel geçmişten kaldır</string>
+    <string name="local_history_removed">Yerel geçmişten kaldırıldı</string>
 </resources>

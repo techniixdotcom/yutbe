@@ -289,7 +289,7 @@ public final class AppUpdater {
 					ToastUtils.show(activity, R.string.update_download_failed);
 					return;
 				}
-				install(activity, target);
+				offerInstall(activity, release, target);
 			});
 		});
 	}
@@ -308,6 +308,19 @@ public final class AppUpdater {
 		} else {
 			status.setText(Formatter.formatShortFileSize(context, done));
 		}
+	}
+
+	/**
+	 * Download finished: asks whether to install now.
+	 */
+	private void offerInstall(@NonNull Activity activity, @NonNull Release release, @NonNull File apk) {
+		new MaterialAlertDialogBuilder(activity)
+						.setTitle(R.string.update_ready_title)
+						.setMessage(activity.getString(R.string.update_ready_message, release.tag))
+						.setCancelable(false)
+						.setNegativeButton(R.string.update_later, null)
+						.setPositiveButton(R.string.update_install, (d, w) -> install(activity, apk))
+						.show();
 	}
 
 	/**

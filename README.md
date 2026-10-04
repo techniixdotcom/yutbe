@@ -17,12 +17,15 @@ YuTbe is an advanced webview wrapper for YouTube.
 * [x] **Built-in video and playlist downloader**
 * [x] **Live stream chat support, etc**
 * [x] **Toggle on/off grey out watched videos, with user chosen watched %**
-* [x] **local history**
+* [x] **Toggle on/off Swipe down to minimise the playing video**
+
 
 ## Future Goals
 
 making this as customizable as possible but keeping but staying true to our interpretation of the original.
 
+## toggle on/off:
+* [x] **sync to other devices and youtube.com**
 * [x] **Requests**
 
 ## Screenshots

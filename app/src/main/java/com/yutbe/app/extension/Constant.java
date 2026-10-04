@@ -46,9 +46,7 @@ public final class Constant {
 	public static final List<String> CHOICE_KEYS = List.of(QUALITY_WIFI, QUALITY_MOBILE);
 	public static final String ACTION_SLEEP_TIMER = "action_sleep_timer";
 	public static final String ACTION_QUEUE = "action_queue";
-	public static final String ACTION_WATCH_HISTORY = "action_watch_history";
-	public static final List<String> ACTION_KEYS = List.of(ACTION_BLOCKED_CHANNELS, ACTION_SLEEP_TIMER, ACTION_QUEUE,
-					ACTION_WATCH_HISTORY);
+	public static final List<String> ACTION_KEYS = List.of(ACTION_BLOCKED_CHANNELS, ACTION_SLEEP_TIMER, ACTION_QUEUE);
 	/**
 	 * Gestures that are turned off while swipe down to minimize is on.
 	 */

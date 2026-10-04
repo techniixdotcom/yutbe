@@ -257,10 +257,7 @@
     <string name="queue_list_cleared">キューを空にしました</string>
     <string name="queue_item_removed">キューから削除しました</string>
     <string name="no_suggestions">次に再生するおすすめ動画がありません</string>
-    <string name="watch_history">視聴履歴</string>
-    <string name="watch_history_summary">YuTbe で再生した動画（新しい順）</string>
     <string name="watch_history_empty">まだ再生した動画はありません。</string>
-    <string name="watch_history_tap_to_play">タップすると動画を再生します</string>
     <string name="watch_history_clear">履歴を消去</string>
     <string name="watch_history_clear_confirm">視聴履歴からすべての動画を削除しますか？</string>
     <string name="hide_subscriptions">「登録チャンネル」タブを非表示</string>
@@ -287,4 +284,10 @@
     <string name="update_settings">設定</string>
     <string name="update_no_apk">YuTbe %1$s が利用可能ですが、リリースに APK が添付されていません。リリースページを開きますか？</string>
     <string name="update_open_page">ページを開く</string>
+    <string name="update_ready_title">アップデートをダウンロードしました</string>
+    <string name="update_ready_message">YuTbe %1$s の準備ができました。今すぐインストールしますか？</string>
+    <string name="view_all">すべて表示</string>
+    <string name="local_history">ローカル履歴</string>
+    <string name="local_history_remove">ローカル履歴から削除</string>
+    <string name="local_history_removed">ローカル履歴から削除しました</string>
 </resources>

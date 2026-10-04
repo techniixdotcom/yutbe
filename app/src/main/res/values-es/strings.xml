@@ -259,10 +259,7 @@
     <string name="queue_list_cleared">Cola vaciada</string>
     <string name="queue_item_removed">Quitado de la cola</string>
     <string name="no_suggestions">No hay ningún vídeo sugerido para reproducir</string>
-    <string name="watch_history">Historial de reproducciones</string>
-    <string name="watch_history_summary">Vídeos reproducidos en YuTbe, los más recientes primero</string>
     <string name="watch_history_empty">Todavía no se ha reproducido ningún vídeo.</string>
-    <string name="watch_history_tap_to_play">Toca un vídeo para reproducirlo</string>
     <string name="watch_history_clear">Borrar historial</string>
     <string name="watch_history_clear_confirm">¿Quitar todos los vídeos del historial?</string>
     <string name="hide_subscriptions">Ocultar la pestaña Suscripciones</string>
@@ -291,4 +288,10 @@
     <string name="update_settings">Ajustes</string>
     <string name="update_no_apk">YuTbe %1$s está disponible, pero la versión no incluye un APK. ¿Abrir la página de la versión?</string>
     <string name="update_open_page">Abrir página</string>
+    <string name="update_ready_title">Actualización descargada</string>
+    <string name="update_ready_message">YuTbe %1$s está lista. ¿Instalarla ahora?</string>
+    <string name="view_all">Ver todo</string>
+    <string name="local_history">Historial local</string>
+    <string name="local_history_remove">Quitar del historial local</string>
+    <string name="local_history_removed">Quitado del historial local</string>
 </resources>

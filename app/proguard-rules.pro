@@ -71,6 +71,8 @@
 -dontwarn java.beans.Introspector
 -dontwarn java.beans.PropertyDescriptor
 
+# Not obfuscated on purpose: the project is open source (GPL), and readable stack traces
+# make crash reports from users useful. Shrinking and optimisation still run.
 -dontobfuscate
 -keepclassmembers class com.yutbe.app.extractor.VideoDetails { *; }
 -keep class com.googlecode.mp4parser.** { *; }

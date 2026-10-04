@@ -257,10 +257,7 @@
     <string name="queue_list_cleared">队列已清空</string>
     <string name="queue_item_removed">已从队列移除</string>
     <string name="no_suggestions">没有可接着播放的推荐视频</string>
-    <string name="watch_history">观看记录</string>
-    <string name="watch_history_summary">在 YuTbe 中播放过的视频，最新的在前</string>
     <string name="watch_history_empty">还没有播放过视频。</string>
-    <string name="watch_history_tap_to_play">点按视频即可播放</string>
     <string name="watch_history_clear">清除记录</string>
     <string name="watch_history_clear_confirm">要从观看记录中移除所有视频吗？</string>
     <string name="hide_subscriptions">隐藏“订阅”标签</string>
@@ -287,4 +284,10 @@
     <string name="update_settings">设置</string>
     <string name="update_no_apk">YuTbe %1$s 已发布，但该版本没有附带 APK。要打开发布页面吗？</string>
     <string name="update_open_page">打开页面</string>
+    <string name="update_ready_title">更新已下载</string>
+    <string name="update_ready_message">YuTbe %1$s 已就绪。现在安装吗？</string>
+    <string name="view_all">查看全部</string>
+    <string name="local_history">本地记录</string>
+    <string name="local_history_remove">从本地记录中移除</string>
+    <string name="local_history_removed">已从本地记录中移除</string>
 </resources>

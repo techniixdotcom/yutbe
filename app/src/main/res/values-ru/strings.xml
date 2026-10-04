@@ -257,10 +257,7 @@
     <string name="queue_list_cleared">Очередь очищена</string>
     <string name="queue_item_removed">Удалено из очереди</string>
     <string name="no_suggestions">Нет рекомендуемого видео для воспроизведения</string>
-    <string name="watch_history">История просмотра</string>
-    <string name="watch_history_summary">Видео, просмотренные в YuTbe, сначала новые</string>
     <string name="watch_history_empty">Вы ещё не смотрели видео.</string>
-    <string name="watch_history_tap_to_play">Нажмите на видео, чтобы воспроизвести его</string>
     <string name="watch_history_clear">Очистить историю</string>
     <string name="watch_history_clear_confirm">Удалить все видео из истории просмотра?</string>
     <string name="hide_subscriptions">Скрыть вкладку «Подписки»</string>
@@ -293,4 +290,10 @@
     <string name="update_settings">Настройки</string>
     <string name="update_no_apk">Доступна YuTbe %1$s, но к выпуску не приложен APK. Открыть страницу выпуска?</string>
     <string name="update_open_page">Открыть страницу</string>
+    <string name="update_ready_title">Обновление загружено</string>
+    <string name="update_ready_message">YuTbe %1$s готова. Установить сейчас?</string>
+    <string name="view_all">Показать все</string>
+    <string name="local_history">Локальная история</string>
+    <string name="local_history_remove">Удалить из локальной истории</string>
+    <string name="local_history_removed">Удалено из локальной истории</string>
 </resources>

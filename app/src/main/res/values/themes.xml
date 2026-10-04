@@ -48,6 +48,11 @@
         <item name="shapeAppearance">@style/ShapeAppearance.YuTbe.BottomSheet</item>
     </style>
 
+    <style name="ShapeAppearance.YuTbe.Thumbnail" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">8dp</item>
+    </style>
+
     <style name="ShapeAppearance.YuTbe.BottomSheet" parent="ShapeAppearance.Material3.LargeComponent">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSizeTopLeft">16dp</item>

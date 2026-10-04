@@ -138,6 +138,12 @@ public class YoutubeWebview extends WebView {
 	@Nullable
 	private ContentFilters contentFilters;
 	@Nullable
+	private com.yutbe.app.history.WatchHistory watchHistory;
+
+	public void setWatchHistory(@NonNull com.yutbe.app.history.WatchHistory watchHistory) {
+		this.watchHistory = watchHistory;
+	}
+	@Nullable
 	private LoadingProgressBar progressBar;
 	@Nullable
 	private PoTokenContextStore poTokenContextStore;
@@ -388,7 +394,7 @@ public class YoutubeWebview extends WebView {
 		settings.setMediaPlaybackRequiresUserGesture(false);
 		settings.setUserAgentString("Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36");
 
-		JavascriptInterface jsInterface = new JavascriptInterface(this, youtubeExtractor, player, extensionManager, tabManager, queueRepository, Objects.requireNonNull(contentFilters));
+		JavascriptInterface jsInterface = new JavascriptInterface(this, youtubeExtractor, player, extensionManager, tabManager, queueRepository, Objects.requireNonNull(contentFilters), Objects.requireNonNull(watchHistory));
 		bridge = jsInterface;
 		if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
 			// Only YouTube pages get the channel, and only calls from the top frame are accepted,
@@ -695,10 +701,13 @@ public class YoutubeWebview extends WebView {
 
 	public void syncPreferences() {
 		if (extensionManager == null) return;
+		// The local watch history changes while other pages are shown, so the page gets fresh
+		// state every time it comes back into view.
+		pushBridgeState();
+		evaluateJavascript("window.dispatchEvent(new Event('yutbeStateChanged'));", null);
 		long version = extensionManager.version();
 		if (version == prefVersion) return;
 		prefVersion = version;
-		pushBridgeState();
 		evaluateJavascript("window.dispatchEvent(new Event('yutbePreferencesChanged'));", null);
 	}
 

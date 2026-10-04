@@ -21,6 +21,8 @@ import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 import com.yutbe.app.R;
 import com.yutbe.app.filter.ContentFilters;
+import com.yutbe.app.history.LocalHistoryActivity;
+import com.yutbe.app.history.WatchHistory;
 import com.yutbe.app.downloader.ui.DownloadActivity;
 import com.yutbe.app.downloader.ui.DownloadDialog;
 import com.yutbe.app.downloader.ui.PlaylistDownloadDialog;
@@ -36,6 +38,7 @@ import com.yutbe.app.ui.AboutActivity;
 import com.yutbe.app.ui.MainActivity;
 import com.yutbe.app.ui.MediaItemMenuDialog;
 import com.yutbe.app.util.ToastUtils;
+import com.yutbe.app.util.UrlUtils;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -65,12 +68,16 @@ public final class JavascriptInterface {
 	@NonNull
 	private final ContentFilters contentFilters;
 	@NonNull
+	private final WatchHistory watchHistory;
+	private static final int WATCH_LOG_ON_PAGE = 30;
+	@NonNull
 	private final Gson gson = new Gson();
 	@NonNull
 	private final Handler handler = new Handler(Looper.getMainLooper());
 
-	public JavascriptInterface(@NonNull YoutubeWebview webView, @NonNull YoutubeExtractor youtubeExtractor, @NonNull YuTbePlayer player, @NonNull ExtensionManager extensionManager, @NonNull TabManager tabManager, @NonNull QueueRepository queueRepository, @NonNull ContentFilters contentFilters) {
+	public JavascriptInterface(@NonNull YoutubeWebview webView, @NonNull YoutubeExtractor youtubeExtractor, @NonNull YuTbePlayer player, @NonNull ExtensionManager extensionManager, @NonNull TabManager tabManager, @NonNull QueueRepository queueRepository, @NonNull ContentFilters contentFilters, @NonNull WatchHistory watchHistory) {
 		this.contentFilters = contentFilters;
+		this.watchHistory = watchHistory;
 		this.context = webView.getContext();
 		this.webView = webView;
 		this.youtubeExtractor = youtubeExtractor;
@@ -401,8 +408,16 @@ public final class JavascriptInterface {
 		if (!webView.isTrustedPage()) return;
 		if (urlsJson != null) {
 			handler.post(() -> {
-				List<String> urls = gson.fromJson(urlsJson, new TypeToken<List<String>>() {
-				}.getType());
+				List<String> urls;
+				try {
+					urls = gson.fromJson(urlsJson, new TypeToken<List<String>>() {
+					}.getType());
+				} catch (RuntimeException e) {
+					return;
+				}
+				if (urls == null) return;
+				urls.removeIf(url -> url == null || !url.startsWith("https://"));
+				if (urls.isEmpty()) return;
 				Intent intent = new Intent(context, GalleryActivity.class);
 				intent.putStringArrayListExtra("thumbnails", new ArrayList<>(urls));
 				intent.putExtra("filename", DateTimeFormatter.ofPattern("yyyyMMddHHmmss").format(LocalDateTime.now()));
@@ -426,6 +441,43 @@ public final class JavascriptInterface {
 		labels.addProperty("subscriptions", context.getString(R.string.nav_subscriptions));
 		labels.addProperty("you", context.getString(R.string.nav_you));
 		return labels.toString();
+	}
+
+	@NonNull
+	@android.webkit.JavascriptInterface
+	public String getWatchLog() {
+		if (!webView.isTrustedPage()) return "{}";
+		return watchLogJson().toString();
+	}
+
+	@android.webkit.JavascriptInterface
+	public void openWatchHistory() {
+		if (!webView.isTrustedPage()) return;
+		handler.post(() -> {
+			context.startActivity(new Intent(context, LocalHistoryActivity.class));
+		});
+	}
+
+	/**
+	 * The newest local history entries plus the texts the page needs to show them.
+	 */
+	@NonNull
+	private JsonObject watchLogJson() {
+		JsonObject root = new JsonObject();
+		root.addProperty("title", context.getString(R.string.local_history));
+		root.addProperty("viewAll", context.getString(R.string.view_all));
+		JsonArray items = new JsonArray();
+		for (WatchHistory.Entry entry : watchHistory.entries()) {
+			if (items.size() >= WATCH_LOG_ON_PAGE) break;
+			JsonObject item = new JsonObject();
+			item.addProperty("id", entry.videoId());
+			item.addProperty("title", entry.title());
+			item.addProperty("author", entry.author());
+			item.addProperty("at", entry.watchedAt());
+			items.add(item);
+		}
+		root.add("items", items);
+		return root;
 	}
 
 	@NonNull
@@ -473,6 +525,7 @@ public final class JavascriptInterface {
 			resume.addProperty(videoId, player.getResumePosition(videoId));
 		}
 		state.add("resume", resume);
+		state.addProperty("watchLog", watchLogJson().toString());
 		return state.toString();
 	}
 
@@ -516,9 +569,10 @@ public final class JavascriptInterface {
 			case "setPlayerHeight" -> setPlayerHeight((int) argLong(args, 0));
 			case "onPosterLongPress" -> onPosterLongPress(argString(args, 0));
 			case "openTab" -> openTab(argString(args, 0), argString(args, 1));
+			case "openWatchHistory" -> openWatchHistory();
 			case "seekLoadedVideo" -> {
 				String url = argString(args, 0);
-				if (url != null && !seekLoadedVideo(url, argLong(args, 1))) {
+				if (url != null && !seekLoadedVideo(url, argLong(args, 1)) && UrlUtils.isTrustedPageUrl(url)) {
 					webView.loadUrl(url);
 				}
 			}

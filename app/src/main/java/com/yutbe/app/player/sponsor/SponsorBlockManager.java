@@ -42,7 +42,8 @@ public final class SponsorBlockManager {
 	private final PlayerPreferences preferences;
 	@Getter
 	@NonNull
-	private List<long[]> segments = Collections.emptyList();
+	// Written by the loader thread, read by the player thread.
+	private volatile List<long[]> segments = Collections.emptyList();
 
 	@Inject
 	public SponsorBlockManager(@NonNull OkHttpClient client, @NonNull Gson gson, @NonNull PlayerPreferences preferences) {

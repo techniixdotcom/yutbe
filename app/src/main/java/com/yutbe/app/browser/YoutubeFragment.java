@@ -52,6 +52,8 @@ public final class YoutubeFragment extends Fragment {
 	@Inject
 	ContentFilters contentFilters;
 	@Inject
+	com.yutbe.app.history.WatchHistory watchHistory;
+	@Inject
 	OkHttpClient okHttpClient;
 	@Inject
 	WebViewCachePolicy webViewCachePolicy;
@@ -121,6 +123,7 @@ public final class YoutubeFragment extends Fragment {
 		webView.setTabManager(tabManager);
 		webView.setQueueRepository(queueRepository);
 		webView.setContentFilters(contentFilters);
+		webView.setWatchHistory(watchHistory);
 		webView.setOkHttpClient(okHttpClient, webViewCachePolicy);
 		webView.setPoTokenContextStore(poTokenContextStore);
 		tabManager.injectScripts(webView);
