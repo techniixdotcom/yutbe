@@ -13,7 +13,6 @@ import com.yutbe.app.cache.WebViewCachePolicy;
 import com.tencent.mmkv.MMKV;
 
 import java.io.File;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -78,12 +77,21 @@ public class CommonModule {
 	@Provides
 	@Singleton
 	public Executor provideExecutor() {
-		return new ThreadPoolExecutor(
-						8,
-						24,
+		// Never rejects work (a rejected task would crash the caller) and lets idle threads end.
+		java.util.concurrent.atomic.AtomicInteger count = new java.util.concurrent.atomic.AtomicInteger();
+		ThreadPoolExecutor executor = new ThreadPoolExecutor(
+						6,
+						6,
 						30,
 						TimeUnit.SECONDS,
-						new ArrayBlockingQueue<>(96));
+						new java.util.concurrent.LinkedBlockingQueue<>(),
+						runnable -> {
+							Thread thread = new Thread(runnable, "yutbe-worker-" + count.incrementAndGet());
+							thread.setDaemon(true);
+							return thread;
+						});
+		executor.allowCoreThreadTimeOut(true);
+		return executor;
 	}
 
 	@Provides

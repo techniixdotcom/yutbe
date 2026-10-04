@@ -27,7 +27,6 @@
     <string name="action_replay">重新播放</string>
     <string name="action_previous">上一個</string>
     <string name="action_next">下一個</string>
-    <string name="general">外觀</string>
     <string name="interface_category">介面</string>
     <string name="interface_summary">倒讚數、Shorts、已看影片、已封鎖頻道</string>
     <string name="player">播放</string>
@@ -112,7 +111,6 @@
     <string name="failed_to_export_log">匯出日誌失敗</string>
     <string name="version">版本: %1$s</string>
     <string name="check_for_updates">檢查更新</string>
-    <string name="update_available">可用更新: %1$s</string>
     <string name="no_updates_available">當前已是最新版本</string>
     <string name="checking_for_updates">正在檢查更新…</string>
     <string name="failed_to_check_for_updates">檢查更新失敗</string>
@@ -155,7 +153,6 @@
     <string name="queue_unknown_author">未知作者</string>
     <string name="queue_now_playing">正在播放</string>
     <string name="queue_download_unavailable">目前沒有可下載的佇列內容</string>
-    <string name="player_gestures">播放手勢</string>
     <string name="action_restore_watch">返回影片</string>
     <string name="in_app_mini_player">應用內小窗</string>
     <string name="status_downloading_simple">下載中</string>
@@ -276,4 +273,18 @@
     <plurals name="queue_list_count">
         <item quantity="other">%d 部影片</item>
     </plurals>
+    <string name="update_title">有可用更新</string>
+    <string name="update_title_version">正在更新至 %1$s</string>
+    <string name="update_message">YuTbe %1$s 已發布（目前為 %2$s）。現在下載並安裝嗎？</string>
+    <string name="update_now">更新</string>
+    <string name="update_later">稍後</string>
+    <string name="update_downloading">正在下載更新…</string>
+    <string name="update_progress">%1$d%% · %2$s / %3$s</string>
+    <string name="update_download_failed">無法下載更新</string>
+    <string name="update_verify_failed">下載的檔案不是使用與本應用程式相同金鑰簽署的較新版 YuTbe，因此未安裝。</string>
+    <string name="update_install">安裝</string>
+    <string name="update_allow_installs">要安裝更新，YuTbe 需要安裝應用程式的權限。點按「設定」並允許，然後返回點按「安裝」。</string>
+    <string name="update_settings">設定</string>
+    <string name="update_no_apk">YuTbe %1$s 已發布，但該版本沒有附上 APK。要開啟發布頁面嗎？</string>
+    <string name="update_open_page">開啟頁面</string>
 </resources>

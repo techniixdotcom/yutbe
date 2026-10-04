@@ -27,7 +27,6 @@
     <string name="failed_to_download">Error al descargar</string>
     <string name="failed_to_download_thumbnail">Error al descargar la imagen</string>
     <string name="audio_only">Solo audio</string>
-    <string name="player_gestures">Gestos del reproductor</string>
     <string name="close">Cerrar</string>
     <string name="save">Guardar</string>
     <string name="share">Compartir</string>
@@ -43,7 +42,6 @@
     <string name="action_replay">Volver a reproducir</string>
     <string name="action_previous">Anterior</string>
     <string name="action_next">Siguiente</string>
-    <string name="general">Apariencia</string>
     <string name="interface_category">Interfaz</string>
     <string name="interface_summary">No me gusta, Shorts, vídeos vistos, canales bloqueados</string>
     <string name="player">Reproducción</string>
@@ -131,7 +129,6 @@
     <string name="failed_to_export_log">Error al exportar el registro</string>
     <string name="version">Versión: %1$s</string>
     <string name="check_for_updates">Buscar actualizaciones</string>
-    <string name="update_available">Actualización disponible: %1$s</string>
     <string name="no_updates_available">Ya estás usando la última versión</string>
     <string name="checking_for_updates">Buscando actualizaciones…</string>
     <string name="failed_to_check_for_updates">Error al buscar actualizaciones</string>
@@ -280,4 +277,18 @@
         <item quantity="one">%d vídeo</item>
         <item quantity="other">%d vídeos</item>
     </plurals>
+    <string name="update_title">Actualización disponible</string>
+    <string name="update_title_version">Actualizando a %1$s</string>
+    <string name="update_message">YuTbe %1$s está disponible (tienes %2$s). ¿Descargarla e instalarla ahora?</string>
+    <string name="update_now">Actualizar</string>
+    <string name="update_later">Más tarde</string>
+    <string name="update_downloading">Descargando actualización…</string>
+    <string name="update_progress">%1$d%% · %2$s de %3$s</string>
+    <string name="update_download_failed">No se pudo descargar la actualización</string>
+    <string name="update_verify_failed">El archivo descargado no es una versión más nueva de YuTbe firmada con la misma clave que esta aplicación, así que no se ha instalado.</string>
+    <string name="update_install">Instalar</string>
+    <string name="update_allow_installs">Para instalar actualizaciones, YuTbe necesita permiso para instalar aplicaciones. Toca Ajustes, permítelo y vuelve para tocar Instalar.</string>
+    <string name="update_settings">Ajustes</string>
+    <string name="update_no_apk">YuTbe %1$s está disponible, pero la versión no incluye un APK. ¿Abrir la página de la versión?</string>
+    <string name="update_open_page">Abrir página</string>
 </resources>

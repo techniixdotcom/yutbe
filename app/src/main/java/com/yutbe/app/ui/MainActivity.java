@@ -41,6 +41,7 @@ import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.yutbe.app.Constant;
 import com.yutbe.app.PlaybackService;
 import com.yutbe.app.R;
+import com.yutbe.app.update.AppUpdater;
 import com.yutbe.app.browser.TabManager;
 import com.yutbe.app.browser.YoutubeWebview;
 import com.yutbe.app.downloader.ui.DownloadActivity;
@@ -81,6 +82,8 @@ public final class MainActivity extends AppCompatActivity implements LifecycleEv
 	private final Handler handler = new Handler(Looper.getMainLooper());
 	@Inject
 	ExtensionManager extensionManager;
+	@Inject
+	AppUpdater appUpdater;
 	@Inject
 	TabManager tabManager;
 	@Inject
@@ -140,6 +143,11 @@ public final class MainActivity extends AppCompatActivity implements LifecycleEv
 			v.setPadding(systemBars.left, systemBars.top, systemBars.right, tappable.bottom);
 			return insets;
 		});
+
+		// Checks once per app start; a dialog only appears when a newer release exists.
+		mainView.postDelayed(() -> {
+			if (!isFinishing() && !isDestroyed()) appUpdater.checkOnStart(this);
+		}, 3_000L);
 
 		hintText = findViewById(R.id.activity_hint_text);
 		if (hintText != null) {

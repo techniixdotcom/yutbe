@@ -178,6 +178,16 @@ public class Engine {
 	private final SleepTimer sleepTimer;
 	@NonNull
 	private final WatchHistory watchHistory;
+	/**
+	 * One background thread for history writes, so they happen in order and never queue behind
+	 * extraction work.
+	 */
+	private static final java.util.concurrent.ExecutorService HISTORY_WRITER =
+					java.util.concurrent.Executors.newSingleThreadExecutor(runnable -> {
+						Thread thread = new Thread(runnable, "yutbe-history");
+						thread.setDaemon(true);
+						return thread;
+					});
 	@NonNull
 	private final Context appContext;
 	private int recoveries;
@@ -476,12 +486,19 @@ public class Engine {
 			failedAdaptiveCandidates.clear();
 			failedClients.clear();
 			recoveries = 0;
-			watchHistory.record(video.getId(), video.getTitle(), video.getAuthor(), video.getThumbnailUrl());
 			autoplayToken++;
+			// History writes serialize whole lists, so they stay off the main thread.
+			String id = video.getId();
+			String title = video.getTitle();
+			String author = video.getAuthor();
+			String thumbnail = video.getThumbnailUrl();
+			HISTORY_WRITER.execute(() -> {
+				watchHistory.record(id, title, author, thumbnail);
+				prefs.recordPlayed(id);
+				queueRepository.clearPlayNext(id);
+			});
 		}
 		watchedMarked = false;
-		prefs.recordPlayed(video.getId());
-		queueRepository.clearPlayNext(video.getId());
 		this.videoId = video.getId();
 		this.videoDetails = video;
 		this.streamCatalog = details.catalog();

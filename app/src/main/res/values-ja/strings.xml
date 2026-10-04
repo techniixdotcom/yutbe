@@ -25,7 +25,6 @@
     <string name="action_play">再生</string>
     <string name="action_previous">前へ</string>
     <string name="action_next">次へ</string>
-    <string name="general">外観</string>
     <string name="player">再生</string>
     <string name="sponsorblock">SponsorBlock</string>
     <string name="skip_sponsors">スポンサーをスキップ</string>
@@ -88,7 +87,6 @@
     <string name="failed_to_export_log">ログのエクスポートに失敗しました</string>
     <string name="version">バージョン: %1$s</string>
     <string name="check_for_updates">アップデートを確認</string>
-    <string name="update_available">アップデートがあります: %1$s</string>
     <string name="no_updates_available">最新バージョンを使用しています</string>
     <string name="checking_for_updates">アップデートを確認中…</string>
     <string name="failed_to_check_for_updates">アップデートの確認に失敗しました</string>
@@ -131,7 +129,6 @@
     <string name="queue_unknown_author">不明な作成者</string>
     <string name="queue_now_playing">再生中</string>
     <string name="queue_download_unavailable">ダウンロード可能なキュー項目がありません</string>
-    <string name="player_gestures">プレイヤーのジェスチャー</string>
     <string name="action_replay">再生し直す</string>
     <string name="action_restore_watch">動画に戻る</string>
     <string name="playback_end_next">次を再生</string>
@@ -276,4 +273,18 @@
     <plurals name="queue_list_count">
         <item quantity="other">%d 本の動画</item>
     </plurals>
+    <string name="update_title">アップデートがあります</string>
+    <string name="update_title_version">%1$s に更新中</string>
+    <string name="update_message">YuTbe %1$s が利用可能です（現在 %2$s）。今すぐダウンロードしてインストールしますか？</string>
+    <string name="update_now">アップデート</string>
+    <string name="update_later">後で</string>
+    <string name="update_downloading">アップデートをダウンロードしています…</string>
+    <string name="update_progress">%1$d%% · %2$s / %3$s</string>
+    <string name="update_download_failed">アップデートをダウンロードできませんでした</string>
+    <string name="update_verify_failed">ダウンロードしたファイルは、このアプリと同じ鍵で署名された新しい YuTbe ではないため、インストールしませんでした。</string>
+    <string name="update_install">インストール</string>
+    <string name="update_allow_installs">アップデートをインストールするには、YuTbe にアプリのインストールを許可する必要があります。「設定」をタップして許可し、戻って「インストール」をタップしてください。</string>
+    <string name="update_settings">設定</string>
+    <string name="update_no_apk">YuTbe %1$s が利用可能ですが、リリースに APK が添付されていません。リリースページを開きますか？</string>
+    <string name="update_open_page">ページを開く</string>
 </resources>

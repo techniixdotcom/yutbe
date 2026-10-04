@@ -27,7 +27,6 @@
     <string name="failed_to_download">İndirilemedi</string>
     <string name="failed_to_download_thumbnail">Görsel indirilemedi</string>
     <string name="audio_only">Sadece Ses</string>
-    <string name="player_gestures">Ekran hareketleri</string>
     <string name="close">Kapat</string>
     <string name="save">Kaydet</string>
     <string name="share">Paylaş</string>
@@ -42,7 +41,6 @@
     <string name="action_replay">Baştan oynat</string>
     <string name="action_previous">Öncekine geç</string>
     <string name="action_next">Sıradakine geç</string>
-    <string name="general">Görünüm</string>
     <string name="player">Oynatma</string>
     <string name="sponsorblock">SponsorBlock</string>
     <string name="skip_sponsors">Sponsorlu kısımları atla</string>
@@ -112,7 +110,6 @@
     <string name="failed_to_export_log">Kayıt dışa aktarılamadı</string>
     <string name="version">Sürüm: %1$s</string>
     <string name="check_for_updates">Güncellemeleri Kontrol Et</string>
-    <string name="update_available">Yeni bir sürüm var: %1$s</string>
     <string name="no_updates_available">Uygulama güncel, en son sürümü kullanıyorsunuz</string>
     <string name="checking_for_updates">Güncellemeler aranıyor…</string>
     <string name="failed_to_check_for_updates">Güncelleme kontrolü başarısız oldu</string>
@@ -280,4 +277,18 @@
         <item quantity="one">%d video</item>
         <item quantity="other">%d video</item>
     </plurals>
+    <string name="update_title">Güncelleme mevcut</string>
+    <string name="update_title_version">%1$s sürümüne güncelleniyor</string>
+    <string name="update_message">YuTbe %1$s sürümü mevcut (sizdeki %2$s). Şimdi indirilip yüklensin mi?</string>
+    <string name="update_now">Güncelle</string>
+    <string name="update_later">Daha sonra</string>
+    <string name="update_downloading">Güncelleme indiriliyor…</string>
+    <string name="update_progress">%%%1$d · %2$s / %3$s</string>
+    <string name="update_download_failed">Güncelleme indirilemedi</string>
+    <string name="update_verify_failed">İndirilen dosya bu uygulamayla aynı anahtarla imzalanmış daha yeni bir YuTbe olmadığından yüklenmedi.</string>
+    <string name="update_install">Yükle</string>
+    <string name="update_allow_installs">Güncellemeleri yüklemek için YuTbe\'nin uygulama yükleme iznine ihtiyacı var. Ayarlar\'a dokunup izin verin, sonra geri gelip Yükle\'ye dokunun.</string>
+    <string name="update_settings">Ayarlar</string>
+    <string name="update_no_apk">YuTbe %1$s mevcut ancak sürüme APK eklenmemiş. Sürüm sayfası açılsın mı?</string>
+    <string name="update_open_page">Sayfayı aç</string>
 </resources>

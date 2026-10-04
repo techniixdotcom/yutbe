@@ -25,7 +25,6 @@
     <string name="action_play">Играть</string>
     <string name="action_previous">Перейти к предыдущему</string>
     <string name="action_next">Перейти к следующему</string>
-    <string name="general">Оформление</string>
     <string name="player">Воспроизведение</string>
     <string name="sponsorblock">SponsorBlock</string>
     <string name="skip_sponsors">Пропускать спонсоры</string>
@@ -88,7 +87,6 @@
     <string name="failed_to_export_log">Не удалось экспортировать журнал</string>
     <string name="version">Версия: %1$s</string>
     <string name="check_for_updates">Проверить обновления</string>
-    <string name="update_available">Доступно обновление: %1$s</string>
     <string name="no_updates_available">Вы используете последнюю версию</string>
     <string name="checking_for_updates">Проверка обновлений…</string>
     <string name="failed_to_check_for_updates">Не удалось проверить обновления</string>
@@ -131,7 +129,6 @@
     <string name="queue_unknown_author">Неизвестный автор</string>
     <string name="queue_now_playing">Сейчас воспроизводится</string>
     <string name="queue_download_unavailable">Нет элементов очереди для загрузки</string>
-    <string name="player_gestures">Жесты плеера</string>
     <string name="action_replay">Повторить</string>
     <string name="action_restore_watch">Вернуться к видео</string>
     <string name="playback_end_next">Воспроизвести следующее</string>
@@ -282,4 +279,18 @@
         <item quantity="many">%d видео</item>
         <item quantity="other">%d видео</item>
     </plurals>
+    <string name="update_title">Доступно обновление</string>
+    <string name="update_title_version">Обновление до %1$s</string>
+    <string name="update_message">Доступна YuTbe %1$s (у вас %2$s). Скачать и установить сейчас?</string>
+    <string name="update_now">Обновить</string>
+    <string name="update_later">Позже</string>
+    <string name="update_downloading">Загрузка обновления…</string>
+    <string name="update_progress">%1$d%% · %2$s из %3$s</string>
+    <string name="update_download_failed">Не удалось скачать обновление</string>
+    <string name="update_verify_failed">Скачанный файл не является более новой версией YuTbe, подписанной тем же ключом, что и это приложение, поэтому он не был установлен.</string>
+    <string name="update_install">Установить</string>
+    <string name="update_allow_installs">Чтобы устанавливать обновления, YuTbe нужно разрешение на установку приложений. Нажмите «Настройки», разрешите, затем вернитесь и нажмите «Установить».</string>
+    <string name="update_settings">Настройки</string>
+    <string name="update_no_apk">Доступна YuTbe %1$s, но к выпуску не приложен APK. Открыть страницу выпуска?</string>
+    <string name="update_open_page">Открыть страницу</string>
 </resources>

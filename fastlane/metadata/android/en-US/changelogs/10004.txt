@@ -9,3 +9,5 @@ Faster video loading: the extraction requests run in parallel, and the next vide
 Lower memory use: at most 6 pages are kept open at once.
 Smaller APK: only the app's own languages and the processor types still in use are included.
 Video pages no longer download the video twice: the page's own hidden player is kept from fetching video data, leaving all bandwidth to YuTbe's player.
+In-app updates: YuTbe checks for a new release every time it starts, downloads it with a progress bar and opens the installer. Only a newer YuTbe signed with the same key is installed.
+All new texts are translated.

@@ -14,7 +14,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
@@ -23,31 +22,23 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 import com.yutbe.app.Constant;
 import com.yutbe.app.R;
+import com.yutbe.app.update.AppUpdater;
 import com.yutbe.app.cache.AppCacheCleaner;
 import com.yutbe.app.util.ToastUtils;
 
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
-import java.util.Objects;
 
 import javax.inject.Inject;
 
 import dagger.hilt.android.AndroidEntryPoint;
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
 
 /**
  * Screen that shows app info, cache actions, and update checks.
@@ -56,9 +47,7 @@ import okhttp3.Response;
 public class AboutActivity extends AppCompatActivity {
 	private static final String TAG = "AboutActivity";
 	@Inject
-	OkHttpClient client;
-	@Inject
-	Gson gson;
+	AppUpdater appUpdater;
 	@Inject
 	AppCacheCleaner appCacheCleaner;
 	private TextView updateText;
@@ -117,81 +106,14 @@ public class AboutActivity extends AppCompatActivity {
 	}
 
 	private void checkForUpdates() {
-		String updateApiUrl = getString(R.string.update_api_url).trim();
-		if (!updateApiUrl.startsWith("https://")) {
-			ToastUtils.show(AboutActivity.this, R.string.update_check_unavailable);
-			return;
-		}
 		updateLayout.setEnabled(false);
 		updateText.setText(R.string.checking_for_updates);
-
-		Request request = new Request.Builder()
-						.url(updateApiUrl)
-						.build();
-
-		client.newCall(request).enqueue(new Callback() {
-			@Override
-			public void onFailure(@NonNull Call call, @NonNull IOException e) {
-				runOnUiThread(() -> {
-					updateLayout.setEnabled(true);
-					updateText.setText(R.string.check_for_updates);
-					ToastUtils.show(AboutActivity.this, R.string.failed_to_check_for_updates);
-				});
-			}
-
-			@Override
-			public void onResponse(@NonNull Call call, @NonNull Response response) {
-				try (response) {
-					// 404 means no release has been published yet.
-					if (response.code() == 404) {
-						runOnUiThread(() -> {
-							updateLayout.setEnabled(true);
-							updateText.setText(R.string.check_for_updates);
-							ToastUtils.show(AboutActivity.this, R.string.no_updates_available);
-						});
-						return;
-					}
-					if (!response.isSuccessful())
-						throw new IOException("Unexpected code " + response);
-
-					String body = Objects.requireNonNull(response.body()).string();
-					JsonObject json = gson.fromJson(body, JsonObject.class);
-					String latest = json.get("tag_name").getAsString();
-					String url = json.get("html_url").getAsString();
-					// Only ever open release pages of the official repository.
-					String releasesPrefix = getString(R.string.source_link) + "/releases/";
-					if (!url.startsWith(releasesPrefix)) {
-						throw new IOException("Unexpected release URL " + url);
-					}
-
-					String version = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
-					if (isNewerVersion(version, latest)) {
-						runOnUiThread(() -> {
-							updateLayout.setEnabled(true);
-							updateText.setText(getString(R.string.update_available, latest));
-							updateLayout.setOnClickListener(v -> {
-								Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-								startActivity(intent);
-							});
-						});
-					} else {
-						runOnUiThread(() -> {
-							updateLayout.setEnabled(true);
-							updateText.setText(R.string.check_for_updates);
-							ToastUtils.show(AboutActivity.this, R.string.no_updates_available);
-						});
-					}
-				} catch (Exception e) {
-					Log.e(TAG, "Update check error", e);
-					runOnUiThread(() -> {
-						updateLayout.setEnabled(true);
-						updateText.setText(R.string.check_for_updates);
-						ToastUtils.show(AboutActivity.this, R.string.failed_to_check_for_updates);
-					});
-				}
-			}
+		appUpdater.checkManually(this, updateFound -> {
+			updateLayout.setEnabled(true);
+			updateText.setText(R.string.check_for_updates);
 		});
 	}
+
 
 	private void clearAppCache() {
 		new Thread(() -> {
@@ -241,34 +163,6 @@ public class AboutActivity extends AppCompatActivity {
 		}).start();
 	}
 
-	private boolean isNewerVersion(String cur, String latest) {
-		if (cur == null || latest == null) return false;
 
-		// Strip the optional v prefix before comparing versions.
-		String c = cur.startsWith("v") ? cur.substring(1) : cur;
-		String l = latest.startsWith("v") ? latest.substring(1) : latest;
-
-		String[] curParts = c.split("\\.");
-		String[] latestParts = l.split("\\.");
-		int length = Math.max(curParts.length, latestParts.length);
-
-		for (int i = 0; i < length; i++) {
-			int cPart = i < curParts.length ? versionPart(curParts[i]) : 0;
-			int lPart = i < latestParts.length ? versionPart(latestParts[i]) : 0;
-			if (lPart > cPart) return true;
-			if (lPart < cPart) return false;
-		}
-		return false;
-	}
-
-	private static int versionPart(String part) {
-		String digits = part.replaceAll("\\D", "");
-		if (digits.isEmpty()) return 0;
-		try {
-			return Integer.parseInt(digits.length() > 9 ? digits.substring(0, 9) : digits);
-		} catch (NumberFormatException e) {
-			return 0;
-		}
-	}
 
 }
