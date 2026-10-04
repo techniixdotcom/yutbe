@@ -24,8 +24,6 @@ YuTbe is an advanced webview wrapper for YouTube.
 
 making this as customizable as possible but keeping but staying true to our interpretation of the original.
 
-## toggle on/off:
-* [x] **sync to other devices and youtube.com**
 * [x] **Requests**
 
 ## Screenshots
