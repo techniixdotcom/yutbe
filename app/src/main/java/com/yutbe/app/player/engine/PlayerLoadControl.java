@@ -15,8 +15,8 @@ class PlayerLoadControl {
 	static DefaultLoadControl create() {
 		return new DefaultLoadControl.Builder()
 						.setBufferDurationsMs(
-										50_000,
-										60_000,
+										15_000,
+										30_000,
 										1_500,
 										4_000
 						)

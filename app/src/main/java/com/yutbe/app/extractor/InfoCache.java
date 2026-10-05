@@ -57,7 +57,9 @@ public final class InfoCache {
 
 	public void putPlaybackDetails(@NonNull String videoId,
 	                               @NonNull PlaybackDetails details) {
-		write(STREAM_KEY + videoId, details, TimeUnit.MINUTES.toMillis(2));
+		// Stream links stay valid for hours; if one has expired anyway, playback recovers by
+		// extracting again, so re-opening a recent video can skip extraction entirely.
+		write(STREAM_KEY + videoId, details, TimeUnit.MINUTES.toMillis(30));
 	}
 
 	public void removePlaybackDetails(@NonNull String videoId) {

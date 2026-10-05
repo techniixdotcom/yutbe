@@ -6,8 +6,8 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
-val appVersionName = "v1.0.7"
-val appVersionCode = 10007
+val appVersionName = "v1.0.8"
+val appVersionCode = 10008
 val apkBaseName = "yutbe" + appVersionName.removePrefix("v")
 
 base {
@@ -161,7 +161,11 @@ abstract class ExportApkTask : DefaultTask() {
             ?: throw GradleException("Expected exactly one APK, found ${builtArtifacts.elements.size}")
         val target = outputApk.get().asFile
         target.parentFile.mkdirs()
-        File(apk.outputFile).copyTo(target, overwrite = true)
+        val source = File(apk.outputFile)
+        source.copyTo(target, overwrite = true)
+        // Only the correctly named copy in dist/ is kept, so there is never a second APK with a
+        // "-release" suffix lying around.
+        source.delete()
         logger.lifecycle("APK: ${target.absolutePath}")
     }
 }

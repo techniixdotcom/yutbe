@@ -1,0 +1,13 @@
+YuTbe v1.0.8
+
+Faster
+- Faster app start: YuTbe no longer opens a second, hidden YouTube page at every launch (it was only needed for an old playback method). Links opened with YuTbe no longer wait up to 4 seconds before playing.
+- Re-opening a video you watched in the last 30 minutes starts almost instantly, because its stream information is reused instead of fetched again.
+- Pages load lighter: YouTube's tracking and ad requests are blocked before they leave the phone. Your YouTube watch history keeps working.
+- Page scripts are no longer injected twice on every page load.
+
+Lighter
+- Less memory: at most 4 pages are kept open, and the video buffer is now 30 seconds instead of 60 (less RAM and less wasted data when skipping or closing a video).
+
+Build
+- The finished APK is only saved as dist/yutbe<version>.apk; the extra copy with a "-release" suffix is gone.

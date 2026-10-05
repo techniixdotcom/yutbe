@@ -11,7 +11,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
-import android.os.SystemClock;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.TextView;
@@ -51,7 +50,6 @@ import com.yutbe.app.downloader.ui.PlaylistDownloadDialog;
 import com.yutbe.app.downloader.ui.PlaylistDownloadItem;
 import com.yutbe.app.extension.ExtensionManager;
 import com.yutbe.app.extractor.YoutubeExtractor;
-import com.yutbe.app.extractor.potoken.PoTokenHost;
 import com.yutbe.app.player.YuTbePlayer;
 import com.yutbe.app.player.common.PlayerLoopMode;
 import com.yutbe.app.player.queue.QueueItem;
@@ -92,8 +90,6 @@ public final class MainActivity extends AppCompatActivity implements LifecycleEv
 	YoutubeExtractor youtubeExtractor;
 	@Inject
 	QueueRepository queueRepository;
-	@Inject
-	PoTokenHost poTokenHost;
 	@Nullable
 	private PlaybackService playbackService;
 	@Nullable
@@ -192,30 +188,18 @@ public final class MainActivity extends AppCompatActivity implements LifecycleEv
 		getOnBackPressedDispatcher().addCallback(this, appBackCallback);
 
 		// Initialize potoken dependency and open home page.
-		long startupDeadlineMs = SystemClock.uptimeMillis() + 4_000L;
-
-		mainView.post(new Runnable() {
-			@Override
-			public void run() {
-				if (bootstrapped) {
-					handleIntent(getIntent());
-					return;
+		// The token page (PoTokenHost) is no longer opened at startup: the extractor's client does
+		// not use tokens, so it only starts if a token is ever actually requested.
+		mainView.post(() -> {
+			if (!bootstrapped && tabManager.getWebView() == null) {
+				String initialUrl = restoredUrl;
+				if (initialUrl == null || initialUrl.isBlank()) {
+					initialUrl = Constant.HOME_URL;
 				}
-				poTokenHost.prewarm();
-				if (tabManager.getWebView() == null) {
-					String initialUrl = restoredUrl;
-					if (initialUrl == null || initialUrl.isBlank()) {
-						initialUrl = Constant.HOME_URL;
-					}
-					tabManager.openTab(initialUrl, UrlUtils.getPageClass(initialUrl));
-				}
-				if (!poTokenHost.isReady() && SystemClock.uptimeMillis() < startupDeadlineMs) {
-					handler.postDelayed(this, 100L);
-					return;
-				}
-				bootstrapped = true;
-				handleIntent(getIntent());
+				tabManager.openTab(initialUrl, UrlUtils.getPageClass(initialUrl));
 			}
+			bootstrapped = true;
+			handleIntent(getIntent());
 		});
 	}
 

@@ -421,7 +421,7 @@ public class TabManager {
 		return minimizeToBar() || extensionManager.isEnabled(Constant.ENABLE_IN_APP_MINI_PLAYER);
 	}
 
-	private static final int MAX_TABS = 6;
+	private static final int MAX_TABS = 4;
 
 	private void enterMiniPlayer() {
 		enterMiniPlayer(minimizeToBar());

@@ -263,6 +263,37 @@ public class YoutubeWebview extends WebView {
 	@Nullable
 	private volatile String pageUrl;
 
+	private static final String REFRESH_SCRIPTS = "window.returnDislike?.syncPreferences?.();"
+					+ "window.hideShorts?.syncPreferences?.();"
+					+ "window.yutbeContentFilters?.refresh?.();"
+					+ "window.yutbeNavBar?.update?.();"
+					+ "window.yutbeLocalHistory?.refresh?.();";
+
+	private static final java.util.Set<String> TRACKING_HOSTS = java.util.Set.of(
+					"googleads.g.doubleclick.net", "static.doubleclick.net", "ad.doubleclick.net",
+					"pagead2.googlesyndication.com", "tpc.googlesyndication.com", "www.googleadservices.com");
+
+	/**
+	 * Telemetry and ad requests made by YouTube's page. Playback and watch-time reports
+	 * (/api/stats/playback, /api/stats/watchtime) are not on this list: they keep the account's
+	 * YouTube history working.
+	 */
+	static boolean isTrackingRequest(@NonNull Uri uri, @Nullable String path) {
+		String host = uri.getHost();
+		if (host == null) return false;
+		if (TRACKING_HOSTS.contains(host)) return true;
+		if (path == null) return false;
+		if (host.equals("play.google.com") && path.startsWith("/log")) return true;
+		if (!host.endsWith("youtube.com") && !host.endsWith("googlevideo.com")) return false;
+		return path.startsWith("/youtubei/v1/log_event")
+						|| path.startsWith("/ptracking")
+						|| path.startsWith("/generate_204")
+						|| path.startsWith("/api/stats/ads")
+						|| path.startsWith("/api/stats/qoe")
+						|| path.startsWith("/pagead/")
+						|| path.startsWith("/pcs/activeview");
+	}
+
 	/**
 	 * Video data requested by the page itself while it shows a regular video page. Shorts are
 	 * left alone because the page's player plays them.
@@ -476,7 +507,16 @@ public class YoutubeWebview extends WebView {
 				frame.finished = true;
 				frame.url = url;
 				evaluateJavascript("window.dispatchEvent(new Event('onPageFinished'));", null);
-				injectJavaScript(url);
+				// Scripts are injected when the page starts. That early injection can land in the
+				// previous document, so they are only injected again when the page lacks them.
+				evaluateJavascript("!!window.__yutbeInjected", present -> {
+					if (!"true".equals(present)) {
+						injectJavaScript(url);
+					} else {
+						// Same effect as re-injecting, without re-parsing every script.
+						evaluateJavascript(REFRESH_SCRIPTS, null);
+					}
+				});
 				refreshPoTokenContext();
 				if (onPageFinishedListener != null) onPageFinishedListener.accept(url);
 			}
@@ -514,7 +554,7 @@ public class YoutubeWebview extends WebView {
 			public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
 				Uri uri = request.getUrl();
 				String path = uri.getPath();
-				if (isHiddenPlayerMedia(uri, path)) {
+				if (isHiddenPlayerMedia(uri, path) || isTrackingRequest(uri, path)) {
 					// The page's own player is hidden and muted on video pages; the app's player
 					// plays the video. Letting the page download the same video as well would
 					// halve the bandwidth left for the real player.
@@ -672,6 +712,7 @@ public class YoutubeWebview extends WebView {
 			evaluateJavascript(bridgeShim, null);
 		}
 		for (String js : scripts) evaluateJavascript(js, null);
+		evaluateJavascript("window.__yutbeInjected = true;", null);
 	}
 
 	public void injectJavaScript(@NonNull InputStream jsInputStream) {
