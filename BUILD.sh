@@ -76,9 +76,6 @@ Usage: ./BUILD.sh [--clean] [--debug] [--install] [--reinstall] [--fix-permissio
                      installed YuTbe that was signed with that key
   --help             show this help
 
-Run it as your normal user, without sudo. It asks for your password itself
-only if system packages have to be installed.
-
 Environment:
   YUTBE_HOME   where the JDK, Android SDK and signing key are kept (default: ~/.yutbe)
 EOF
@@ -115,8 +112,6 @@ if [[ "$EXPECT_KEY_DIR" -eq 1 ]]; then
 	die "--import-key needs the folder that holds yutbe-release.p12 and signing.env"
 fi
 
-# Building as root (for example "sudo ./BUILD.sh") leaves root-owned files that the normal user
-# cannot delete, so a sudo run is handed back to the user who started it.
 if [[ "$(id -u)" -eq 0 && -n "${SUDO_USER:-}" && "$SUDO_USER" != "root" && "$FIX_PERMISSIONS" -eq 0 ]]; then
 	log "Started with sudo; continuing as $SUDO_USER so every file stays yours"
 	exec sudo -u "$SUDO_USER" -H bash "$ROOT/BUILD.sh" "$@"
@@ -326,7 +321,6 @@ random_secret() {
 	od -An -tx1 -N32 /dev/urandom | tr -d ' \n'
 }
 
-# Reads a file that may belong to root (left behind by an earlier "sudo ./BUILD.sh").
 read_protected() {
 	if [[ -r "$1" ]]; then
 		cat "$1"
@@ -344,7 +338,6 @@ protected_exists() {
 	[[ "$(id -u)" -ne 0 ]] && command -v sudo >/dev/null 2>&1 && sudo test -e "$1"
 }
 
-# Reads the password from a signing.env file without executing it.
 signing_password_from() {
 	local line value
 	while IFS= read -r line; do
@@ -379,8 +372,6 @@ load_signing_key() {
 	log "Signing key fingerprint (SHA-256): $fingerprint"
 }
 
-# Copies a signing key (yutbe-release.p12 + signing.env) from another folder, keeping any
-# key that is replaced in a backup folder.
 import_signing_key() {
 	local source="${1%/}"
 	protected_exists "$source/yutbe-release.p12" || die "No yutbe-release.p12 in $source"
@@ -412,7 +403,7 @@ ensure_signing_key() {
 	elif [[ -f "$KEYSTORE" || -f "$SIGNING_ENV" ]]; then
 		die "Signing key files in $SIGNING_DIR are incomplete. Restore them from your backup, or delete that folder to create a new key (a new key cannot update an installed YuTbe)."
 	else
-		# A build started with sudo before this script switched users kept its key under /root.
+
 		local old="/root/.yutbe/signing"
 		if [[ "$HOME" != "/root" ]] && protected_exists "$old/yutbe-release.p12"; then
 			log "Found the signing key of an earlier sudo build in $old"
@@ -526,7 +517,7 @@ collect_apk() {
 		[[ "$built" == "v$version" ]] || die "The APK reports version '$built' but app/build.gradle.kts says v$version"
 		log "APK version: $built"
 	fi
-	# Older APKs in dist only cause mix-ups, so only the current build is kept there.
+	
 	find "$DIST_DIR" -maxdepth 1 -name 'yutbe*.apk' ! -name "$(basename "$out")" -delete 2>/dev/null || true
 	log "SHA-256: $(sha256_of "$out")"
 	log "Done. Your APK: $out"
@@ -557,7 +548,6 @@ ensure_build_tools() {
 	"$sdkmanager" --sdk_root="$SDK_DIR" --install "$package" >/dev/null
 }
 
-# SHA-256 of the certificate an APK is signed with, as lowercase hex.
 apk_digest() {
 	"$(apksigner_bin)" verify --print-certs "$1" 2>/dev/null \
 		| awk -F': ' '/Signer #1 certificate SHA-256 digest/ {print $2; exit}' | tr 'A-F' 'a-f'
@@ -571,7 +561,6 @@ installed_digest() {
 	apk_digest "$TMP_DIR/installed.apk"
 }
 
-# SHA-256 of the certificate in a signing folder, as lowercase hex.
 key_digest() {
 	local dir="$1" password
 	password="$(read_protected "$dir/signing.env" | signing_password_from)" || return 1
@@ -594,7 +583,7 @@ key_folders() {
 	done
 }
 
-# Makes sure the build is signed with the same key as the YuTbe already on the phone.
+
 match_installed_key() {
 	if ! device_ready; then
 		warn "No phone with USB debugging found yet; the APK will be built, the install step needs the phone"
