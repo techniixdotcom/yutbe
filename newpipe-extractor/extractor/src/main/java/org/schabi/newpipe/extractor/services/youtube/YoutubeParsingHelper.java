@@ -570,20 +570,23 @@ public final class YoutubeParsingHelper {
         try {
             extractClientVersionFromSwJs();
         } catch (final Exception e) {
-            extractClientVersionFromHtmlSearchResultsPage();
+            try {
+                extractClientVersionFromHtmlSearchResultsPage();
+            } catch (final Exception ignored) {
+                // YuTbe: YouTube sometimes serves a page without ytInitialData (for example a
+                // consent page); the hardcoded version below is used then.
+            }
         }
 
         if (clientVersionExtracted) {
             return clientVersion;
         }
 
-        // Fallback to the hardcoded one if it is valid
-        if (isHardcodedClientVersionValid()) {
-            clientVersion = WEB_HARDCODED_CLIENT_VERSION;
-            return clientVersion;
-        }
-
-        throw new ExtractionException("Could not get YouTube WEB client version");
+        // YuTbe: the WEB client version is only needed for metadata and suggestions, never for
+        // the streams, so playback must not fail because it could not be read. The hardcoded
+        // version is used without the extra validation request.
+        clientVersion = WEB_HARDCODED_CLIENT_VERSION;
+        return clientVersion;
     }
 
     /**

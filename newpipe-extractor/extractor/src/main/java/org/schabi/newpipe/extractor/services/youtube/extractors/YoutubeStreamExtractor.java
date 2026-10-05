@@ -817,21 +817,28 @@ public class YoutubeStreamExtractor extends StreamExtractor {
         final CompletableFuture<JsonObject> webMetadata = requestAsync(() ->
                 YoutubeStreamHelper.getWebMetadataPlayerResponse(
                         localization, contentCountry, videoId));
-        final byte[] nextBody = JsonWriter.string(
-                prepareDesktopJsonBuilder(localization, contentCountry)
-                        .value(VIDEO_ID, videoId)
-                        .value(CONTENT_CHECK_OK, true)
-                        .value(RACY_CHECK_OK, true)
-                        .done())
-                .getBytes(StandardCharsets.UTF_8);
-        final CompletableFuture<JsonObject> next = requestAsync(() ->
-                getJsonPostResponse(NEXT, nextBody, localization));
+        final CompletableFuture<JsonObject> next = requestAsync(() -> {
+            final byte[] nextBody = JsonWriter.string(
+                    prepareDesktopJsonBuilder(localization, contentCountry)
+                            .value(VIDEO_ID, videoId)
+                            .value(CONTENT_CHECK_OK, true)
+                            .value(RACY_CHECK_OK, true)
+                            .done())
+                    .getBytes(StandardCharsets.UTF_8);
+            return getJsonPostResponse(NEXT, nextBody, localization);
+        });
 
         fetchVisionOsClient(localization, contentCountry, videoId);
         setStreamType();
 
         applyWebClientMetadataAndSetThumbnails(webMetadata, videoId);
-        nextResponse = await(next);
+        // YuTbe: the "next" response only carries likes, the description extras and the
+        // suggestions. If it fails, the video still plays; those fields are simply empty.
+        try {
+            nextResponse = await(next);
+        } catch (final IOException | ExtractionException | RuntimeException e) {
+            nextResponse = new JsonObject();
+        }
     }
 
     @FunctionalInterface

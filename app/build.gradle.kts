@@ -6,8 +6,8 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
-val appVersionName = "v1.0.8"
-val appVersionCode = 10008
+val appVersionName = "v1.0.9"
+val appVersionCode = 10009
 val apkBaseName = "yutbe" + appVersionName.removePrefix("v")
 
 base {
