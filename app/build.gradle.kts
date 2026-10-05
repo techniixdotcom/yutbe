@@ -6,8 +6,8 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
-val appVersionName = "v1.0.6"
-val appVersionCode = 10006
+val appVersionName = "v1.0.7"
+val appVersionCode = 10007
 val apkBaseName = "yutbe" + appVersionName.removePrefix("v")
 
 base {
@@ -38,8 +38,9 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
-            // 32-bit x86 phones have not been made for years; dropping them keeps the APK smaller.
-            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86_64"))
+            // ARM covers practically every phone and tablet. x86/x86_64 are left out to keep the
+            // APK small; add "x86_64" here to support Intel Chromebooks and emulators.
+            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a"))
         }
     }
 
@@ -101,6 +102,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.profileinstaller)
     implementation(libs.lifecycle.process)
     implementation(libs.lifecycle.livedata)
     implementation(libs.lifecycle.viewmodel)

@@ -43,6 +43,10 @@ import okio.Sink;
  */
 @UnstableApi
 public final class OkHttpWebViewInterceptor {
+	private static final Set<String> SKIPPED_REQUEST_HEADERS = Set.of(
+					"cache-control", "content-length", "cookie", "host", "if-modified-since", "if-none-match", "pragma");
+	private static final Set<String> SKIPPED_RESPONSE_HEADERS = Set.of(
+					"content-encoding", "content-length", "content-type", "transfer-encoding");
 
 	@NonNull
 	private final OkHttpClient client;
@@ -164,7 +168,7 @@ public final class OkHttpWebViewInterceptor {
 			String name = header.getKey();
 			String value = header.getValue();
 			if (name == null || name.isEmpty() || value == null) continue;
-			if (Set.of("cache-control", "content-length", "cookie", "host", "if-modified-since", "if-none-match", "pragma").contains(name.toLowerCase(Locale.US)))
+			if (SKIPPED_REQUEST_HEADERS.contains(name.toLowerCase(Locale.US)))
 				continue;
 			builder.header(name, value);
 		}
@@ -278,7 +282,7 @@ public final class OkHttpWebViewInterceptor {
 	private Map<String, String> buildResponseHeaders(@NonNull Response response) {
 		Map<String, String> responseHeaders = new LinkedHashMap<>();
 		for (String name : response.headers().names()) {
-			if (Set.of("content-encoding", "content-length", "content-type", "transfer-encoding").contains(name.toLowerCase(Locale.US)))
+			if (SKIPPED_RESPONSE_HEADERS.contains(name.toLowerCase(Locale.US)))
 				continue;
 			responseHeaders.put(name, Objects.requireNonNull(response.header(name)));
 		}

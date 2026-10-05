@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -19,19 +20,34 @@ import javax.inject.Singleton;
  */
 @Singleton
 public final class InfoCache {
+	private static final String STORE_ID = "yutbe_extractor_cache";
 	private static final String STREAM_KEY = "extractor:stream:";
 	private static final String RELATED_KEY = "extractor:related2:";
+	private static final String UNTIL_PREFIX = "u:";
+	private static final String LEGACY_PREFIX = "extractor:";
+	private static final int PRUNE_EVERY_WRITES = 50;
 
+	/**
+	 * A store of its own, so expired entries can be swept and the file shrunk without touching
+	 * settings. Expiry times are kept under separate keys so sweeping never parses payloads.
+	 */
 	@NonNull
-	private final MMKV kv;
+	private final MMKV store;
 	@NonNull
 	private final Gson gson;
+	private final AtomicInteger writes = new AtomicInteger();
 
 	@Inject
 	public InfoCache(@NonNull MMKV kv,
 	                 @NonNull Gson gson) {
-		this.kv = kv;
 		this.gson = gson;
+		this.store = MMKV.mmkvWithID(STORE_ID);
+		Thread cleanup = new Thread(() -> {
+			removeLegacyEntries(kv);
+			pruneExpired();
+		}, "yutbe-cache-cleanup");
+		cleanup.setDaemon(true);
+		cleanup.start();
 	}
 
 	@Nullable
@@ -45,7 +61,7 @@ public final class InfoCache {
 	}
 
 	public void removePlaybackDetails(@NonNull String videoId) {
-		kv.removeValueForKey(STREAM_KEY + videoId);
+		remove(STREAM_KEY + videoId);
 	}
 
 	@Nullable
@@ -62,17 +78,17 @@ public final class InfoCache {
 	@Nullable
 	private <T> T read(@NonNull String key,
 	                   @NonNull Class<T> type) {
-		String raw = kv.decodeString(key, null);
-		if (raw == null || raw.isBlank()) {
+		long until = store.decodeLong(UNTIL_PREFIX + key, 0L);
+		if (until <= System.currentTimeMillis()) {
+			if (until != 0L) remove(key);
 			return null;
 		}
+		String raw = store.decodeString(key, null);
+		if (raw == null || raw.isBlank()) return null;
 		try {
-			Slot slot = gson.fromJson(raw, Slot.class);
-			if (slot == null || slot.until() <= System.currentTimeMillis()) {
-				return null;
-			}
-			return gson.fromJson(slot.json(), type);
+			return gson.fromJson(raw, type);
 		} catch (RuntimeException ignored) {
+			remove(key);
 			return null;
 		}
 	}
@@ -80,13 +96,56 @@ public final class InfoCache {
 	private void write(@NonNull String key,
 	                   @NonNull Object value,
 	                   final long ttlMs) {
-		Slot slot = new Slot(System.currentTimeMillis() + ttlMs, gson.toJson(value));
-		kv.encode(key, gson.toJson(slot));
+		// Expiry first: a sweep running in between never sees a value without one.
+		store.encode(UNTIL_PREFIX + key, System.currentTimeMillis() + ttlMs);
+		store.encode(key, gson.toJson(value));
+		if (writes.incrementAndGet() % PRUNE_EVERY_WRITES == 0) {
+			Thread prune = new Thread(this::pruneExpired, "yutbe-cache-prune");
+			prune.setDaemon(true);
+			prune.start();
+		}
 	}
 
-/**
- * Value object for app logic.
- */
-	private record Slot(long until, @NonNull String json) {
+	private void remove(@NonNull String key) {
+		store.removeValueForKey(key);
+		store.removeValueForKey(UNTIL_PREFIX + key);
+	}
+
+	private synchronized void pruneExpired() {
+		String[] keys = store.allKeys();
+		if (keys == null) return;
+		long now = System.currentTimeMillis();
+		boolean removed = false;
+		for (String key : keys) {
+			if (!key.startsWith(UNTIL_PREFIX)) {
+				if (!store.containsKey(UNTIL_PREFIX + key)) {
+					store.removeValueForKey(key);
+					removed = true;
+				}
+				continue;
+			}
+			if (store.decodeLong(key, 0L) <= now) {
+				remove(key.substring(UNTIL_PREFIX.length()));
+				removed = true;
+			}
+		}
+		if (removed) store.trim();
+	}
+
+	/**
+	 * Earlier versions kept this cache in the main settings store and never deleted expired
+	 * entries; those are removed once.
+	 */
+	private static void removeLegacyEntries(@NonNull MMKV kv) {
+		String[] keys = kv.allKeys();
+		if (keys == null) return;
+		boolean removed = false;
+		for (String key : keys) {
+			if (key.startsWith(LEGACY_PREFIX)) {
+				kv.removeValueForKey(key);
+				removed = true;
+			}
+		}
+		if (removed) kv.trim();
 	}
 }

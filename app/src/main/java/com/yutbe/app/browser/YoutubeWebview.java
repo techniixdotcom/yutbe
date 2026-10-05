@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Looper;
@@ -392,7 +393,7 @@ public class YoutubeWebview extends WebView {
 		settings.setSupportZoom(false);
 		settings.setBuiltInZoomControls(false);
 		settings.setMediaPlaybackRequiresUserGesture(false);
-		settings.setUserAgentString("Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36");
+		settings.setUserAgentString(Constant.USER_AGENT);
 
 		JavascriptInterface jsInterface = new JavascriptInterface(this, youtubeExtractor, player, extensionManager, tabManager, queueRepository, Objects.requireNonNull(contentFilters), Objects.requireNonNull(watchHistory));
 		bridge = jsInterface;
@@ -552,6 +553,8 @@ public class YoutubeWebview extends WebView {
 
 			@Override
 			public boolean onConsoleMessage(@NonNull ConsoleMessage consoleMessage) {
+				// Page console output is only useful while developing; release builds drop it.
+				if ((getContext().getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) == 0) return true;
 				Log.d("js-log", consoleMessage.message() + " -- From line " + consoleMessage.lineNumber() + " of " + consoleMessage.sourceId());
 				return super.onConsoleMessage(consoleMessage);
 			}

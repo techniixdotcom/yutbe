@@ -22,6 +22,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -36,7 +37,16 @@ public class YuTbeDownloaderImpl implements YuTbeDownloader {
 	private final Context context;
 	private final StreamDownloader streamDL;
 	private final MediaMerger mediaMerger;
-	private final ExecutorService executor = Executors.newCachedThreadPool();
+	private static final int SIDE_FILE_TIMEOUT_MS = 30_000;
+	/**
+	 * Subtitles and thumbnails: a few small files at a time on daemon threads.
+	 */
+	private final ExecutorService executor = Executors.newFixedThreadPool(3, runnable -> {
+		Thread thread = new Thread(runnable, "yutbe-download-file");
+		thread.setDaemon(true);
+		return thread;
+	});
+	private final Map<String, Future<?>> sideTasks = new ConcurrentHashMap<>();
 	private final Map<String, Task> tasks = new ConcurrentHashMap<>();
 	private final Map<String, ProgressCallback2> callbacks = new ConcurrentHashMap<>();
 
@@ -64,28 +74,38 @@ public class YuTbeDownloaderImpl implements YuTbeDownloader {
 	public void download(@NonNull Task t) {
 		tasks.put(t.videoId(), t);
 		if (t.subtitle() != null) {
-			exec(t, () -> FileUtils.copyURLToFile(new URL(t.subtitle().getContent()), outputFile(t)));
+			exec(t, () -> FileUtils.copyURLToFile(new URL(t.subtitle().getContent()), outputFile(t),
+							SIDE_FILE_TIMEOUT_MS, SIDE_FILE_TIMEOUT_MS));
 		} else if (t.thumbnail() != null) {
-			exec(t, () -> FileUtils.copyURLToFile(new URL(t.thumbnail()), outputFile(t)));
+			exec(t, () -> FileUtils.copyURLToFile(new URL(t.thumbnail()), outputFile(t),
+							SIDE_FILE_TIMEOUT_MS, SIDE_FILE_TIMEOUT_MS));
 		} else {
 			downloadMedia(t);
 		}
 	}
 
 	private void exec(Task task, RunnableIOC run) {
-		CompletableFuture.runAsync(() -> {
+		Future<?> future = executor.submit(() -> {
 			try {
 				run.run();
-				complete(task.videoId(), outputFile(task));
+				if (tasks.containsKey(task.videoId())) {
+					complete(task.videoId(), outputFile(task));
+				} else {
+					// Cancelled while downloading.
+					FileUtils.deleteQuietly(outputFile(task));
+				}
 			} catch (Exception e) {
-				throw new CompletionException(e);
+				handleErr(task, e);
+			} finally {
+				sideTasks.remove(task.videoId());
 			}
-		}, executor).exceptionally(e -> handleErr(task, e));
+		});
+		sideTasks.put(task.videoId(), future);
 	}
 
 	private void downloadMedia(Task task) {
 		// Download audio and video separately, then merge when needed.
-		streamDL.setMaxThreadCount(task.threadCount());
+		int threads = task.threadCount();
 		File vF = tmp(task, "_v"), aF = tmp(task, "_a"), out = outputFile(task);
 		long vSz = len(task.video()), aSz = len(task.audio());
 
@@ -94,12 +114,12 @@ public class YuTbeDownloaderImpl implements YuTbeDownloader {
 		CompletableFuture<File> vFut = task.video() == null ? null : streamDL.download(task.video().getContent(), vF, createProgressAdapter(p -> {
 			if (aSz > 0) agg.updV(p);
 			else progress(task.videoId(), p, (long) (vSz * (p / 100.0)), vSz);
-		}));
+		}), threads);
 
 		CompletableFuture<File> aFut = task.audio() == null ? null : streamDL.download(task.audio().getContent(), aF, createProgressAdapter(p -> {
 			if (vSz > 0) agg.updA(p);
 			else progress(task.videoId(), p, (long) (aSz * (p / 100.0)), aSz);
-		}));
+		}), threads);
 
 		(vFut != null && aFut != null ? CompletableFuture.allOf(vFut, aFut) : (vFut != null ? vFut : aFut)).thenRun(() -> {
 			try {
@@ -150,6 +170,8 @@ public class YuTbeDownloaderImpl implements YuTbeDownloader {
 			if (t == null) return;
 			if (t.video() != null) streamDL.cancel(t.video().getContent());
 			if (t.audio() != null) streamDL.cancel(t.audio().getContent());
+			Future<?> side = sideTasks.remove(videoId);
+			if (side != null) side.cancel(true);
 			notify(videoId, ProgressCallback2::onCancel);
 			clean(t);
 		} finally {

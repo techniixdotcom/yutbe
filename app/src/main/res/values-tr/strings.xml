@@ -32,8 +32,6 @@
     <string name="share">Paylaş</string>
     <string name="share_thumbnail">Kapak Resmini Paylaş</string>
     <string name="extension">Eklentiler</string>
-    <string name="request_restart">Değişiklikleri görmek için yeniden başlatın</string>
-    <string name="restart">Yeniden Başlat</string>
     <string name="display_dislikes">Beğenmeme sayısını (Dislike) göster</string>
     <string name="hide_shorts">Shorts videolarını gizle</string>
     <string name="action_pause">Duraklat</string>

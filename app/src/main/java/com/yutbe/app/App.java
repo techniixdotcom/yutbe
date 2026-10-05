@@ -7,6 +7,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 
 import com.tencent.mmkv.MMKV;
+import com.yutbe.app.util.UserAgents;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,7 +30,15 @@ public class App extends Application {
 				WebView.setDataDirectorySuffix(processName);
 			}
 		}
-		Constant.USER_AGENT = WebSettings.getDefaultUserAgent(this);
+		String webViewUserAgent;
+		try {
+			webViewUserAgent = WebSettings.getDefaultUserAgent(this);
+		} catch (RuntimeException e) {
+			// The WebView can be missing or mid-update; the built-in version is used then.
+			webViewUserAgent = null;
+		}
+		Constant.CHROME_MAJOR = UserAgents.chromeMajor(webViewUserAgent);
+		Constant.USER_AGENT = UserAgents.mobile(Constant.CHROME_MAJOR);
 		startLogging();
 	}
 

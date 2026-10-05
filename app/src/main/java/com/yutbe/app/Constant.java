@@ -22,7 +22,11 @@ public final class Constant {
 	public static final String ENABLE_IN_APP_MINI_PLAYER = "enable_in_app_mini_player";
 	public static final String REMEMBER_RESIZE_MODE = "remember_resize_mode";
 	public static final String ENABLE_AUTOPLAY_SUGGESTIONS = "enable_autoplay_suggestions";
-	public static String USER_AGENT = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36";
+	/**
+	 * Set once at startup from the phone's WebView version (see UserAgents).
+	 */
+	public static volatile String CHROME_MAJOR = "140";
+	public static volatile String USER_AGENT = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36";
 
 	private Constant() {
 	}

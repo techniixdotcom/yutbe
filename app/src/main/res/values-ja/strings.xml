@@ -17,8 +17,6 @@
     <string name="share">共有</string>
     <string name="share_thumbnail">サムネイルを共有</string>
     <string name="extension">拡張機能</string>
-    <string name="request_restart">変更を適用するには再起動してください</string>
-    <string name="restart">再起動</string>
     <string name="display_dislikes">低評価数を表示</string>
     <string name="hide_shorts">Shortsを非表示</string>
     <string name="action_pause">一時停止</string>

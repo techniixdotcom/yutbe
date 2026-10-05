@@ -35,7 +35,8 @@ public final class LoadingProgressBar extends View {
 	private LinearGradient fillGradient;
 	@Nullable
 	private LinearGradient shimmerGradient;
-	private float displayedProgress;	private final Runnable frameRunner = this::runFrame;
+	private float displayedProgress;
+	private final Runnable frameRunner = this::runFrame;
 	private float reportedProgress;
 	private float shimmerOffsetPx;
 	private float shimmerCycleWidthPx;

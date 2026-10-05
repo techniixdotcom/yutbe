@@ -32,6 +32,7 @@ final class CookieAccessCoordinator {
 	private final long readCacheTtlMillis;
 	private final long flushDelayMillis;
 	@NonNull
+	private static final int MAX_CACHED_COOKIES = 256;
 	private final Map<String, CacheEntry> cookieCache = new ConcurrentHashMap<>();
 
 	CookieAccessCoordinator(@NonNull Backend backend, @NonNull Scheduler scheduler, @NonNull LongSupplier nowMillisSupplier, long readCacheTtlMillis, long flushDelayMillis) {
@@ -61,6 +62,8 @@ final class CookieAccessCoordinator {
 		}
 
 		String cookie = backend.getCookie(url);
+		// Bounded: start over rather than grow for the whole session.
+		if (cookieCache.size() >= MAX_CACHED_COOKIES) cookieCache.clear();
 		cookieCache.put(cacheKey, new CacheEntry(cookie, nowMillis));
 		return cookie;
 	}

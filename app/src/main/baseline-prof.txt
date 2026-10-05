@@ -1,0 +1,4 @@
+HSPLcom/yutbe/app/**->**(**)**
+Lcom/yutbe/app/**;
+HSPLorg/schabi/newpipe/extractor/**->**(**)**
+Lorg/schabi/newpipe/extractor/**;

@@ -225,24 +225,20 @@ public final class JavascriptInterface {
 	public void extension() {
 		if (!webView.isTrustedPage()) return;
 		handler.post(() -> {
-			Intent intent = ExtensionActivity.intent(context);
-			if (!(context instanceof Activity)) {
-				intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-			}
-			context.startActivity(intent);
+			startScreen(ExtensionActivity.intent(context));
 		});
 	}
 
 	@android.webkit.JavascriptInterface
 	public void download() {
 		if (!webView.isTrustedPage()) return;
-		handler.post(() -> context.startActivity(new Intent(context, DownloadActivity.class)));
+		handler.post(() -> startScreen(new Intent(context, DownloadActivity.class)));
 	}
 
 	@android.webkit.JavascriptInterface
 	public void about() {
 		if (!webView.isTrustedPage()) return;
-		handler.post(() -> context.startActivity(new Intent(context, AboutActivity.class)));
+		handler.post(() -> startScreen(new Intent(context, AboutActivity.class)));
 	}
 
 	@android.webkit.JavascriptInterface
@@ -353,7 +349,7 @@ public final class JavascriptInterface {
 			Intent send = new Intent(Intent.ACTION_SEND);
 			send.putExtra(Intent.EXTRA_TEXT, url);
 			send.setType("text/plain");
-			context.startActivity(Intent.createChooser(send, context.getString(R.string.open_with)));
+			startScreen(Intent.createChooser(send, context.getString(R.string.open_with)));
 		});
 	}
 
@@ -421,7 +417,7 @@ public final class JavascriptInterface {
 				Intent intent = new Intent(context, GalleryActivity.class);
 				intent.putStringArrayListExtra("thumbnails", new ArrayList<>(urls));
 				intent.putExtra("filename", DateTimeFormatter.ofPattern("yyyyMMddHHmmss").format(LocalDateTime.now()));
-				context.startActivity(intent);
+				startScreen(intent);
 			});
 		}
 	}
@@ -454,7 +450,7 @@ public final class JavascriptInterface {
 	public void openWatchHistory() {
 		if (!webView.isTrustedPage()) return;
 		handler.post(() -> {
-			context.startActivity(new Intent(context, LocalHistoryActivity.class));
+			startScreen(new Intent(context, LocalHistoryActivity.class));
 		});
 	}
 
@@ -534,14 +530,37 @@ public final class JavascriptInterface {
 	 * called, with their arguments type-checked.
 	 */
 	void dispatch(@NonNull String json) {
-		JsonObject message;
-		try {
-			JsonElement parsed = JsonParser.parseString(json);
-			if (!parsed.isJsonObject()) return;
-			message = parsed.getAsJsonObject();
-		} catch (RuntimeException e) {
+		if (json.length() <= INLINE_MESSAGE_CHARS) {
+			JsonObject message = parseMessage(json);
+			if (message != null) run(message);
 			return;
 		}
+		// Large messages (playlists) are parsed off the main thread so the page does not stall.
+		MESSAGE_PARSER.execute(() -> {
+			JsonObject message = parseMessage(json);
+			if (message != null) handler.post(() -> run(message));
+		});
+	}
+
+	private static final int INLINE_MESSAGE_CHARS = 32 * 1024;
+	private static final java.util.concurrent.ExecutorService MESSAGE_PARSER =
+					java.util.concurrent.Executors.newSingleThreadExecutor(runnable -> {
+						Thread thread = new Thread(runnable, "yutbe-bridge");
+						thread.setDaemon(true);
+						return thread;
+					});
+
+	@Nullable
+	private static JsonObject parseMessage(@NonNull String json) {
+		try {
+			JsonElement parsed = JsonParser.parseString(json);
+			return parsed.isJsonObject() ? parsed.getAsJsonObject() : null;
+		} catch (RuntimeException e) {
+			return null;
+		}
+	}
+
+	private void run(@NonNull JsonObject message) {
 		String name = argString(message.get("m"));
 		JsonElement rawArgs = message.get("a");
 		JsonArray args = rawArgs != null && rawArgs.isJsonArray() ? rawArgs.getAsJsonArray() : new JsonArray();
@@ -605,5 +624,17 @@ public final class JavascriptInterface {
 		if (index >= args.size()) return false;
 		JsonElement element = args.get(index);
 		return element.isJsonPrimitive() && element.getAsJsonPrimitive().isBoolean() && element.getAsBoolean();
+	}
+
+	/**
+	 * Starting a screen from a non-Activity context needs a new task.
+	 */
+	private void startScreen(@NonNull Intent intent) {
+		if (!(context instanceof Activity)) intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+		try {
+			context.startActivity(intent);
+		} catch (android.content.ActivityNotFoundException e) {
+			Log.w(TAG, "No screen for " + intent, e);
+		}
 	}
 }

@@ -33,8 +33,6 @@
     <string name="open_with">Open with</string>
     <string name="share_thumbnail">Share Thumbnail</string>
     <string name="extension">Extensions</string>
-    <string name="request_restart">Restart to apply changes</string>
-    <string name="restart">Restart</string>
     <string name="display_dislikes">Show dislikes</string>
     <string name="hide_shorts">Hide Shorts</string>
     <string name="action_pause">Pause</string>

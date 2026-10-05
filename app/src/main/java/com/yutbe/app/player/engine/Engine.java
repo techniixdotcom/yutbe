@@ -86,6 +86,10 @@ public class Engine {
 	private static final String TAG = "YuTbePlayback";
 	static final String NO_PLAYABLE_SOURCE_MESSAGE = "No supported playable stream URL in StreamCatalog";
 	private static final int SAFE_ZONE_MS = 5000;
+	/**
+	 * Videos shorter than this loop instead of moving on (very short clips, like YouTube does).
+	 */
+	private static final long LOOPING_VIDEO_MAX_MS = 5000L;
 	private static final long MIN_WATCHED_TAIL_MS = 10_000L;
 	private static final long MAX_WATCHED_TAIL_MS = 60_000L;
 	private static final int MAX_RECOVERIES_PER_VIDEO = 8;
@@ -458,7 +462,7 @@ public class Engine {
 
 	private boolean isShortVideo() {
 		long duration = player.getDuration();
-		return duration > 0 && duration < SAFE_ZONE_MS;
+		return duration > 0 && duration < LOOPING_VIDEO_MAX_MS;
 	}
 
 	public boolean isPlaying() {

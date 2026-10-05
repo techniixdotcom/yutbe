@@ -17,8 +17,6 @@
     <string name="share">Partager</string>
     <string name="share_thumbnail">Partager la miniature</string>
     <string name="extension">Extension</string>
-    <string name="request_restart">Redémarrer pour appliquer les modifications</string>
-    <string name="restart">Redémarrer</string>
     <string name="display_dislikes">Afficher les dislikes</string>
     <string name="hide_shorts">Masquer les shorts</string>
     <string name="action_pause">Pause</string>

@@ -33,8 +33,6 @@
     <string name="open_with">Abrir con</string>
     <string name="share_thumbnail">Compartir miniatura</string>
     <string name="extension">Extensiones</string>
-    <string name="request_restart">Reinicia para aplicar los cambios</string>
-    <string name="restart">Reiniciar</string>
     <string name="display_dislikes">Mostrar \"No me gusta\"</string>
     <string name="hide_shorts">Ocultar Shorts</string>
     <string name="action_pause">Pausar</string>

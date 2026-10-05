@@ -17,8 +17,6 @@
     <string name="share">Поделиться</string>
     <string name="share_thumbnail">Поделиться миниатюрой</string>
     <string name="extension">Расширение</string>
-    <string name="request_restart">Перезапустите для применения изменений</string>
-    <string name="restart">Перезапустить</string>
     <string name="display_dislikes">Отображать "Не нравится"</string>
     <string name="hide_shorts">Скрыть "Shorts"</string>
     <string name="action_pause">Пауза</string>

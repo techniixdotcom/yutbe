@@ -32,8 +32,6 @@
     <string name="open_with">打开方式</string>
     <string name="share_thumbnail">分享封面</string>
     <string name="extension">扩展</string>
-    <string name="request_restart">重启以应用更改</string>
-    <string name="restart">重启</string>
     <string name="display_dislikes">显示点踩数</string>
     <string name="hide_shorts">隐藏 Shorts</string>
     <string name="action_pause">暂停</string>

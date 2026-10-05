@@ -11,9 +11,16 @@ import java.util.concurrent.CompletableFuture;
  */
 public interface StreamDownloader {
 
-	CompletableFuture<File> download(@NonNull String url, @NonNull File output, @Nullable ProgressCallback callback);
+	int DEFAULT_THREADS = 4;
 
-	void setMaxThreadCount(int count);
+	default CompletableFuture<File> download(@NonNull String url, @NonNull File output, @Nullable ProgressCallback callback) {
+		return download(url, output, callback, DEFAULT_THREADS);
+	}
+
+	/**
+	 * Downloads one stream using at most {@code threads} parallel connections for this file.
+	 */
+	CompletableFuture<File> download(@NonNull String url, @NonNull File output, @Nullable ProgressCallback callback, int threads);
 
 	void pause(@NonNull String url);
 

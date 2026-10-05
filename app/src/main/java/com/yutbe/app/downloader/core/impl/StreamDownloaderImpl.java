@@ -12,12 +12,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.BitSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -44,6 +46,15 @@ public class StreamDownloaderImpl implements StreamDownloader {
 	private final MMKV mmkv;
 	private final ThreadPoolExecutor executor;
 	private final Map<String, TaskContext> tasks = new ConcurrentHashMap<>();
+	private static final long CHUNK_BYTES = 512L * 1024L;
+	private static final int MAX_THREADS = 8;
+	private static final char[] HEX = "0123456789abcdef".toCharArray();
+	/**
+	 * Resume state key. "dl2_" because the chunk layout changed; resume data stored under the
+	 * old "dl_" keys is no longer valid and is removed.
+	 */
+	private static final String KEY_PREFIX = "dl2_";
+	private static final String LEGACY_KEY_PREFIX = "dl_";
 
 	@Inject
 	public StreamDownloaderImpl(OkHttpClient client, MMKV mmkv) {
@@ -58,6 +69,15 @@ public class StreamDownloaderImpl implements StreamDownloader {
 		this.mmkv = mmkv;
 		this.executor = new ThreadPoolExecutor(8, 8, 60, TimeUnit.SECONDS, new LinkedBlockingQueue<>(), r -> new Thread(r, "dl-node"));
 		this.executor.allowCoreThreadTimeOut(true);
+		this.executor.execute(this::removeLegacyResumeData);
+	}
+
+	private void removeLegacyResumeData() {
+		String[] keys = mmkv.allKeys();
+		if (keys == null) return;
+		for (String key : keys) {
+			if (key.startsWith(LEGACY_KEY_PREFIX)) mmkv.removeValueForKey(key);
+		}
 	}
 
 	private static Dispatcher createDispatcher() {
@@ -89,12 +109,13 @@ public class StreamDownloaderImpl implements StreamDownloader {
 	}
 
 	@Override
-	public CompletableFuture<File> download(@NonNull String url, @NonNull File out, @Nullable ProgressCallback callback) {
+	public CompletableFuture<File> download(@NonNull String url, @NonNull File out, @Nullable ProgressCallback callback, int threads) {
 		CompletableFuture<File> future = new CompletableFuture<>();
 		TaskContext task = new TaskContext(
 						url,
 						out,
-						"dl_" + md5(url),
+						KEY_PREFIX + md5(url),
+						Math.max(1, Math.min(MAX_THREADS, threads)),
 						future,
 						callback,
 						new AtomicBoolean(),
@@ -103,7 +124,7 @@ public class StreamDownloaderImpl implements StreamDownloader {
 						new AtomicLong(),
 						new AtomicInteger(-1));
 		tasks.put(url, task);
-		new Thread(() -> runTask(task)).start();
+		startTask(task);
 		return future;
 	}
 
@@ -136,8 +157,8 @@ public class StreamDownloaderImpl implements StreamDownloader {
 			int chunks;
 			if (total <= 0 || !range) chunks = 1;
 			else {
-				int candidate = (int) Math.min(128, Math.max(4, total / 512 * 1024));
-				chunks = (total / Math.max(candidate, 1)) > 0 ? candidate : 1;
+				// One chunk per 512 KB, between 1 and 128 chunks.
+				chunks = (int) Math.max(1L, Math.min(128L, total / CHUNK_BYTES));
 			}
 			long part = total > 0 ? total / chunks : total;
 
@@ -160,8 +181,22 @@ public class StreamDownloaderImpl implements StreamDownloader {
 			// 4. submit task
 			if (task.done.get() < chunks) {
 				RandomAccessFile finalRaf = raf;
-				CompletableFuture.allOf(IntStream.range(0, chunks).filter(i -> !bits.get(i)) // skip finished
-								.mapToObj(i -> CompletableFuture.runAsync(() -> downloadChunk(task, i, chunks, part, total, range, finalRaf, bits), executor)).toArray(CompletableFuture[]::new)).join();
+				// Each download uses its own number of connections: that many workers take the
+				// unfinished chunks one by one.
+				ConcurrentLinkedQueue<Integer> pending = new ConcurrentLinkedQueue<>();
+				IntStream.range(0, chunks).filter(i -> !bits.get(i)).forEach(pending::add);
+				int workers = Math.min(task.threads, pending.size());
+				CompletableFuture<?>[] running = new CompletableFuture<?>[workers];
+				for (int w = 0; w < workers; w++) {
+					running[w] = CompletableFuture.runAsync(() -> {
+						Integer next;
+						while ((next = pending.poll()) != null) {
+							if (task.isInactive()) return;
+							downloadChunk(task, next, chunks, part, total, range, finalRaf, bits);
+						}
+					}, executor);
+				}
+				CompletableFuture.allOf(running).join();
 			}
 
 			// 5. clean up
@@ -242,30 +277,24 @@ public class StreamDownloaderImpl implements StreamDownloader {
 	@Override
 	public void resume(@NonNull String url) {
 		TaskContext t = tasks.get(url);
-		if (t != null && t.paused.compareAndSet(true, false)) new Thread(() -> runTask(t)).start();
+		if (t != null && t.paused.compareAndSet(true, false)) startTask(t);
 	}
 
-	@Override
-	public synchronized void setMaxThreadCount(int count) {
-		int targetCount = Math.max(1, count);
-		Dispatcher dispatcher = client.dispatcher();
-		dispatcher.setMaxRequests(targetCount);
-		dispatcher.setMaxRequestsPerHost(targetCount);
-		if (targetCount > executor.getMaximumPoolSize()) {
-			executor.setMaximumPoolSize(targetCount);
-			executor.setCorePoolSize(targetCount);
-		} else {
-			executor.setCorePoolSize(targetCount);
-			executor.setMaximumPoolSize(targetCount);
-		}
+	private void startTask(@NonNull TaskContext task) {
+		Thread thread = new Thread(() -> runTask(task), "yutbe-download");
+		thread.setDaemon(true);
+		thread.start();
 	}
 
-	private String md5(String s) {
+	private static String md5(String s) {
 		try {
-			byte[] b = MessageDigest.getInstance("MD5").digest(s.getBytes());
-			StringBuilder sb = new StringBuilder();
-			for (byte v : b) sb.append(String.format("%02x", v));
-			return sb.toString();
+			byte[] b = MessageDigest.getInstance("MD5").digest(s.getBytes(StandardCharsets.UTF_8));
+			char[] out = new char[b.length * 2];
+			for (int i = 0; i < b.length; i++) {
+				out[i * 2] = HEX[(b[i] >> 4) & 0xF];
+				out[i * 2 + 1] = HEX[b[i] & 0xF];
+			}
+			return new String(out);
 		} catch (Exception e) {
 			return String.valueOf(s.hashCode());
 		}
@@ -279,6 +308,7 @@ public class StreamDownloaderImpl implements StreamDownloader {
 		final String url;
 		final File out;
 		final String key;
+		final int threads;
 		final CompletableFuture<File> future;
 		final ProgressCallback callback;
 		final Object lock = new Object();

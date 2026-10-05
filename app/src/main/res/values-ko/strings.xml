@@ -17,8 +17,6 @@
     <string name="share">공유</string>
     <string name="share_thumbnail">썸네일 공유</string>
     <string name="extension">플러그인</string>
-    <string name="request_restart">설정을 적용하려면 재시작하세요</string>
-    <string name="restart">재시작</string>
     <string name="display_dislikes">싫어요 수 표시</string>
     <string name="hide_shorts">Shorts 숨기기</string>
     <string name="action_pause">일시정지</string>

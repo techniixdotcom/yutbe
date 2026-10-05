@@ -16,7 +16,9 @@ import androidx.annotation.Nullable;
 import androidx.webkit.WebSettingsCompat;
 import androidx.webkit.WebViewFeature;
 
+import com.yutbe.app.Constant;
 import com.yutbe.app.util.StreamIOUtils;
+import com.yutbe.app.util.UserAgents;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,8 +38,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext;
  */
 @Singleton
 public final class PoTokenHost {
-	private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-					+ "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 	private static final String HOST_HTML_PREFIX =
 					"<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"><script>";
 	private static final String HOST_HTML_SUFFIX =
@@ -169,7 +169,8 @@ public final class PoTokenHost {
 		settings.setJavaScriptEnabled(true);
 		settings.setDomStorageEnabled(false);
 		settings.setDatabaseEnabled(false);
-		settings.setUserAgentString(USER_AGENT);
+		// BotGuard runs as the desktop web client, with the same Chrome version as everything else.
+		settings.setUserAgentString(UserAgents.desktop(Constant.CHROME_MAJOR));
 		settings.setBlockNetworkLoads(true);
 		if (WebViewFeature.isFeatureSupported(WebViewFeature.SAFE_BROWSING_ENABLE)) {
 			WebSettingsCompat.setSafeBrowsingEnabled(settings, false);
