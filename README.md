@@ -1,4 +1,4 @@
-YuTbe
+ YuTbe
 ============
 
 by: techniix / cuteLiLi / QuacK
@@ -22,11 +22,7 @@ YuTbe is an advanced webview wrapper for YouTube.
 
 ## Future Goals
 
-making this as customizable as possible but keeping but staying true to our interpretation of the original.
-
-## toggle on/off:
-* [x] **sync to other devices and youtube.com**
-* [x] **Requests**
+Security , Efficiency , Reliability 
 
 ## Screenshots
 
