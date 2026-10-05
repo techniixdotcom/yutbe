@@ -20,17 +20,9 @@ YuTbe is an advanced webview wrapper for YouTube.
 * [x] **Toggle on/off Swipe down to minimise the playing video**
 
 
-## Future Goals
-
-making this as customizable as possible but keeping but staying true to our interpretation of the original.
-
-## toggle on/off:
-* [x] **sync to other devices and youtube.com**
-* [x] **Requests**
-
 ## Screenshots
 
-<img title="" src="screens/screenshot-1-extensions.png" alt="" width="200"><img title="" src="screens/screenshot-2-interface.png" alt="" width="200"><img title="" src="screens/screenshot-3-download.png" alt="" width="200"><img title="" src="screens/screenshot-4-history.png" alt="" width="200">
+<img title="" src="screens/1.png" alt="" width="200"><img title="" src="screens/2.png" alt="" width="200"><img title="" src="screens/3.png" alt="" width="200"><img title="" src="screens/4" alt="" width="200">
 
 
 ## Contributing
