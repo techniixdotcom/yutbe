@@ -26,16 +26,7 @@
 /.android/
 /.android-user/
 /.android-user-home/
-/.claude/
-/.codex/
-/.codex-tmp/
 /.sandbox-home/
-/.superpowers/
-
-/docs
-/findings.md
-/progress.md
-/task_plan.md
 
 /dist/
 /build.log
