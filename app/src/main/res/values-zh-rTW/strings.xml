@@ -288,4 +288,7 @@
     <string name="local_history">本機記錄</string>
     <string name="local_history_remove">從本機記錄中移除</string>
     <string name="local_history_removed">已從本機記錄中移除</string>
+    <string name="video_unavailable_skipped">影片無法播放，已略過</string>
+    <string name="action_seek_back_10">倒轉 10 秒</string>
+    <string name="action_seek_forward_10">快轉 10 秒</string>
 </resources>

@@ -134,6 +134,7 @@ enum PlaybackPrimaryAction {
 @ActivityScoped
 @UnstableApi
 public class Controller {
+	private static final long SEEK_STEP_MS = 10_000L;
 	static final float DISABLED_BUTTON_ALPHA = 0.38f;
 	private static final long PHYSICAL_ORIENTATION_STABLE_MS = 300L;
 	@NonNull
@@ -451,6 +452,14 @@ public class Controller {
 		});
 		setClicks(new int[]{R.id.btn_next, R.id.btn_mini_next}, v -> {
 			engine.skipToNext();
+			setControlsVisible(true);
+		});
+		setClicks(new int[]{R.id.btn_seek_back}, v -> {
+			engine.seekBy(-SEEK_STEP_MS);
+			setControlsVisible(true);
+		});
+		setClicks(new int[]{R.id.btn_seek_forward}, v -> {
+			engine.seekBy(SEEK_STEP_MS);
 			setControlsVisible(true);
 		});
 

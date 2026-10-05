@@ -288,4 +288,7 @@
     <string name="local_history">本地记录</string>
     <string name="local_history_remove">从本地记录中移除</string>
     <string name="local_history_removed">已从本地记录中移除</string>
+    <string name="video_unavailable_skipped">视频不可用，已跳过</string>
+    <string name="action_seek_back_10">后退 10 秒</string>
+    <string name="action_seek_forward_10">前进 10 秒</string>
 </resources>

@@ -292,4 +292,7 @@
     <string name="local_history">Historial local</string>
     <string name="local_history_remove">Quitar del historial local</string>
     <string name="local_history_removed">Quitado del historial local</string>
+    <string name="video_unavailable_skipped">Vídeo no disponible, se ha saltado</string>
+    <string name="action_seek_back_10">Retroceder 10 segundos</string>
+    <string name="action_seek_forward_10">Avanzar 10 segundos</string>
 </resources>

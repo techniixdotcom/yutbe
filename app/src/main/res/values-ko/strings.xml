@@ -288,4 +288,7 @@
     <string name="local_history">로컬 기록</string>
     <string name="local_history_remove">로컬 기록에서 삭제</string>
     <string name="local_history_removed">로컬 기록에서 삭제했습니다</string>
+    <string name="video_unavailable_skipped">동영상을 재생할 수 없어 건너뛰었습니다</string>
+    <string name="action_seek_back_10">10초 뒤로</string>
+    <string name="action_seek_forward_10">10초 앞으로</string>
 </resources>

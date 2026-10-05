@@ -263,12 +263,6 @@ public class YoutubeWebview extends WebView {
 	@Nullable
 	private volatile String pageUrl;
 
-	private static final String REFRESH_SCRIPTS = "window.returnDislike?.syncPreferences?.();"
-					+ "window.hideShorts?.syncPreferences?.();"
-					+ "window.yutbeContentFilters?.refresh?.();"
-					+ "window.yutbeNavBar?.update?.();"
-					+ "window.yutbeLocalHistory?.refresh?.();";
-
 	private static final java.util.Set<String> TRACKING_HOSTS = java.util.Set.of(
 					"googleads.g.doubleclick.net", "static.doubleclick.net", "ad.doubleclick.net",
 					"pagead2.googlesyndication.com", "tpc.googlesyndication.com", "www.googleadservices.com");
@@ -507,16 +501,9 @@ public class YoutubeWebview extends WebView {
 				frame.finished = true;
 				frame.url = url;
 				evaluateJavascript("window.dispatchEvent(new Event('onPageFinished'));", null);
-				// Scripts are injected when the page starts. That early injection can land in the
-				// previous document, so they are only injected again when the page lacks them.
-				evaluateJavascript("!!window.__yutbeInjected", present -> {
-					if (!"true".equals(present)) {
-						injectJavaScript(url);
-					} else {
-						// Same effect as re-injecting, without re-parsing every script.
-						evaluateJavascript(REFRESH_SCRIPTS, null);
-					}
-				});
+				// Injected again when the page has finished: the injection at page start can land
+				// in the previous document. Every script and style guards against running twice.
+				injectJavaScript(url);
 				refreshPoTokenContext();
 				if (onPageFinishedListener != null) onPageFinishedListener.accept(url);
 			}
@@ -712,7 +699,6 @@ public class YoutubeWebview extends WebView {
 			evaluateJavascript(bridgeShim, null);
 		}
 		for (String js : scripts) evaluateJavascript(js, null);
-		evaluateJavascript("window.__yutbeInjected = true;", null);
 	}
 
 	public void injectJavaScript(@NonNull InputStream jsInputStream) {
@@ -726,15 +712,18 @@ public class YoutubeWebview extends WebView {
 		String css = StreamIOUtils.readInputStream(cssInputStream);
 		if (css != null) {
 			String encodedCss = Base64.getEncoder().encodeToString(css.getBytes());
+			// Each stylesheet is added once per page, even though injection runs twice per load.
+			String id = "yutbe-css-" + Integer.toHexString(css.hashCode());
 			String js = String.format("""
 							(function(){
+							if (document.getElementById('%s')) return;
 							let style = document.createElement('style');
-							style.type = 'text/css';
+							style.id = '%s';
 							style.textContent = window.atob('%s');
 							let target = document.head || document.documentElement;
 							if (target) target.appendChild(style);
 							})()
-							""", encodedCss);
+							""", id, id, encodedCss);
 			addScript(js);
 		}
 	}

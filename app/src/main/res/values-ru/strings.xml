@@ -294,4 +294,7 @@
     <string name="local_history">Локальная история</string>
     <string name="local_history_remove">Удалить из локальной истории</string>
     <string name="local_history_removed">Удалено из локальной истории</string>
+    <string name="video_unavailable_skipped">Видео недоступно, пропущено</string>
+    <string name="action_seek_back_10">Назад на 10 секунд</string>
+    <string name="action_seek_forward_10">Вперёд на 10 секунд</string>
 </resources>

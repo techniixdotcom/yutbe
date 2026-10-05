@@ -14,7 +14,18 @@ ytm-companion-ad-renderer,
 .playlist-engagement-panel-top-level-buttons,
 .yt-mini-app-container-view-model__background-blur,
 .yt-mini-app-container-view-model__background-scrim,
-button-view-model:has(svg path[d^="m4 2.999"])
+button-view-model:has(svg path[d^="m4 2.999"]),
+ytm-ad-slot-renderer,
+ytm-display-ad-renderer,
+ytm-in-feed-ad-layout-renderer,
+ytm-promoted-video-renderer,
+ytm-promoted-sparkles-web-renderer,
+ytm-promoted-sparkles-text-search-renderer,
+ytm-rich-item-renderer:has(ad-slot-renderer),
+ytm-rich-item-renderer:has(ytm-ad-slot-renderer),
+ytm-rich-item-renderer:has(ytm-in-feed-ad-layout-renderer),
+ytm-feed-nudge-renderer,
+feed-nudge-view-model
 {
     display: none !important;
 }

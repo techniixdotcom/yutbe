@@ -278,6 +278,22 @@
         android:visibility="gone">
 
         <ImageButton
+            android:id="@+id/btn_seek_back"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/action_seek_back_10"
+            android:padding="10dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_seek_back_10"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/btn_prev"
+            app:layout_constraintHorizontal_chainStyle="packed"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageButton
             android:id="@+id/btn_prev"
             android:layout_width="56dp"
             android:layout_height="56dp"
@@ -288,8 +304,7 @@
             android:src="@drawable/ic_previous"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/play_pause_container"
-            app:layout_constraintHorizontal_chainStyle="packed"
-            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/btn_seek_back"
             app:layout_constraintTop_toTopOf="parent" />
 
         <FrameLayout
@@ -333,8 +348,23 @@
             android:scaleType="fitCenter"
             android:src="@drawable/ic_next"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/btn_seek_forward"
             app:layout_constraintStart_toEndOf="@+id/play_pause_container"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageButton
+            android:id="@+id/btn_seek_forward"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/action_seek_forward_10"
+            android:padding="10dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_seek_forward_10"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/btn_next"
             app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 

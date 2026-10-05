@@ -292,4 +292,7 @@
     <string name="local_history">Yerel geçmiş</string>
     <string name="local_history_remove">Yerel geçmişten kaldır</string>
     <string name="local_history_removed">Yerel geçmişten kaldırıldı</string>
+    <string name="video_unavailable_skipped">Video kullanılamıyor, atlandı</string>
+    <string name="action_seek_back_10">10 saniye geri</string>
+    <string name="action_seek_forward_10">10 saniye ileri</string>
 </resources>

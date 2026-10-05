@@ -673,7 +673,10 @@ public class Engine {
 	}
 
 	public void seekBy(long offset) {
-		this.player.seekTo(Math.min(this.player.getDuration(), this.player.getCurrentPosition() + offset));
+		long target = Math.max(0L, this.player.getCurrentPosition() + offset);
+		long duration = this.player.getDuration();
+		if (duration > 0) target = Math.min(duration, target);
+		this.player.seekTo(target);
 	}
 
 	public float getPlaybackRate() {
@@ -773,6 +776,21 @@ public class Engine {
 			return;
 		}
 		autoplaySuggestion(watchId, manual);
+	}
+
+	/**
+	 * A video in the queue or a playlist that cannot be played (removed, private, blocked) is
+	 * skipped instead of stopping playback with an error.
+	 *
+	 * @return true when the video was skipped
+	 */
+	public boolean skipUnavailable(@NonNull String unavailableId) {
+		boolean queueContext = queueRepository.isEnabled() && queueRepository.hasItems();
+		boolean playlistContext = !queueContext && tabManager.watchHasPlaylist();
+		if (!queueContext && !playlistContext) return false;
+		skipToNext(false);
+		removeFromQueue(unavailableId);
+		return true;
 	}
 
 	/**

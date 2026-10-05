@@ -288,4 +288,7 @@
     <string name="local_history">ローカル履歴</string>
     <string name="local_history_remove">ローカル履歴から削除</string>
     <string name="local_history_removed">ローカル履歴から削除しました</string>
+    <string name="video_unavailable_skipped">動画を再生できないためスキップしました</string>
+    <string name="action_seek_back_10">10 秒戻る</string>
+    <string name="action_seek_forward_10">10 秒進む</string>
 </resources>

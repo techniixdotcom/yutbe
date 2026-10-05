@@ -13,6 +13,7 @@ import androidx.media3.ui.DefaultTimeBar;
 
 import com.yutbe.app.PlaybackService;
 import com.yutbe.app.R;
+import com.yutbe.app.util.ToastUtils;
 import com.yutbe.app.extractor.ExtractionSession;
 import com.yutbe.app.extractor.PlaybackDetails;
 import com.yutbe.app.extractor.PlaybackPlan;
@@ -306,10 +307,15 @@ public class YuTbePlayer {
 							if (cause instanceof Exception && !(cause instanceof ExtractionException)) {
 								cause = classifyException((Exception) cause);
 							}
+							boolean unavailable = isUnavailable(e);
 							if (cause instanceof ExtractionException) {
 								Throwable error = cause;
 								activity.runOnUiThread(() -> {
 									if (!Objects.equals(this.queuedId, videoId)) return;
+									if (unavailable && engine.skipUnavailable(videoId)) {
+										ToastUtils.show(activity, R.string.video_unavailable_skipped);
+										return;
+									}
 									ErrorDialog.show(activity, error.getMessage(), error);
 								});
 							}
@@ -365,6 +371,17 @@ public class YuTbePlayer {
 							}
 						}));
 		return true;
+	}
+
+	/**
+	 * Removed, private, blocked or otherwise unplayable videos.
+	 */
+	private static boolean isUnavailable(@Nullable Throwable error) {
+		for (Throwable t = error; t != null; t = t.getCause()) {
+			if (t instanceof org.schabi.newpipe.extractor.exceptions.ContentNotAvailableException) return true;
+			if (t.getCause() == t) break;
+		}
+		return false;
 	}
 
 	@NonNull

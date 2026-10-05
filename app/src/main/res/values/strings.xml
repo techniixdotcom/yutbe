@@ -293,5 +293,8 @@
     <string name="local_history">Local History</string>
     <string name="local_history_remove">Remove from Local History</string>
     <string name="local_history_removed">Removed from Local History</string>
+    <string name="video_unavailable_skipped">Video unavailable, skipped</string>
+    <string name="action_seek_back_10">Back 10 seconds</string>
+    <string name="action_seek_forward_10">Forward 10 seconds</string>
 </resources>
 
