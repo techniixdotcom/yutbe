@@ -26,6 +26,11 @@ maybe a full recode?? a webwrapper as implemented now is slow...we could reduce 
 ## hmmm 
 we can ... i dont have time till the weekend. testtube needs a lot of work tho...ill need a 6pack for that 😂. maintenance should be doable its dependant on youtube bs (same issue newpipe people have...its bot token issue and naming change issue...lets see if there is a bypass thats longer lasting. cant be arsed if it stops working everytime a coorporation changes their mind.
 
+
+## wtf
+who is syncing to gh?
+
+
 ## Screenshots
 <p align="center">
 <img title="" src="screens/1.png" alt="" width="200"><img title="" src="screens/2.png" alt="" width="200"><img title="" src="screens/3.png" alt="" width="200"><img title="" src="screens/4.png" alt="" width="200">
