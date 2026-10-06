@@ -20,7 +20,7 @@ YuTbe is an advanced webview wrapper for YouTube.
 * [x] **Local History**
 
 **future**
-maybe a full recode?? a webwrapper as implemented now is slow...we could reduce the resource usage...its use case dependant...check the testtube apk, its 4mb and loads so much faster, just means higher maintenace??... 
+maybe a full recode?? a webwrapper as implemented now is slow...we could reduce the resource usage...its use case dependant...check the testtube apk, its 4mb and loads so much faster, just means higher maintenace??....
 
 ## Screenshots
 <p align="center">
